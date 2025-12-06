@@ -31,6 +31,12 @@
  * Clang-Tidy: 'scanf' used to convert a string to an integer value,
  * but function will not report conversion errors; consider using
  * 'strtol' instead
+ *
+ *
+ * Personal functions for scanf:
+ * '%z'    - gen z , add 'lol'
+ * '%?', n - cipher, offset
+ *
  */
 
 #include <stdio.h>
