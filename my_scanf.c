@@ -27,12 +27,15 @@
  * i: "hey" hey
  * o: "hey"
  *
+ *
  * Warning from CLion potentially about underlying operations:
  * Clang-Tidy: 'scanf' used to convert a string to an integer value,
  * but function will not report conversion errors; consider using
  * 'strtol' instead
  *
- *
+ * Notes 12/07:
+ * - Will have to be able to pass scanf a variable to return the input(s) too and make sure they
+ *   match based on the flags
  * Personal functions for scanf:
  * '%z'    - gen z , add 'lol'
  * '%?', n - cipher, offset
@@ -40,12 +43,24 @@
  */
 
 #include <stdio.h>
+
+int my_scanf(char *indentifier, int amount_to_read, int variable) {
+    if (indentifier == "%c") {
+        int c = getchar();
+        printf("%c",c);
+    }
+    return 0;
+}
+
 int main()
 {
     // playing around with scanf to see how it works
-    char x[] = "";
-    scanf("%s", &x);
-    printf(x);
+    // char x[] = "";
+    // scanf("%s", &x);
+    // printf(x);
+    char c;
+    my_scanf("%c", &c);
+    printf("%c\n", c);
 
     return 0;
 }
