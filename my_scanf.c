@@ -38,13 +38,20 @@
  *   match based on the flags
  * Personal functions for scanf:
  * '%z'    - gen z , add 'lol'
- * '%?', n - cipher, offset
+ * '%?', n - cipher, offset (is this doable?)
+ *
+ *
+ * Notes on 12/08:
+ * - Use regex
+ * - How do you use a variable number of arguments? --> variadic functions in c --> stdarg.h
+ * - get character - fopen to use the stream? getc from the stream? look into how it works
+ * - %31f can be implemented (since it's a part of %f which also is a project requirement to implement)
  *
  */
 
 #include <stdio.h>
 
-int my_scanf(char *indentifier, int amount_to_read, int variable) {
+int my_scanf(char *indentifier, int variable ) {
     if (indentifier == "%c") {
         int c = getchar();
         printf("%c",c);
