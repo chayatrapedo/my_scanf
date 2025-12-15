@@ -51,6 +51,11 @@
 
 #include <stdio.h>
 
+// parameters:
+// - must use multiple parameters, unpack args to be able to assign to mutiple variables
+//   from one scanf
+// - have a sequence that parses the input string to look for mulitple values. maybe regex?
+
 int my_scanf(char *indentifier, int variable ) {
     if (indentifier == "%c") {
         int c = getchar();
