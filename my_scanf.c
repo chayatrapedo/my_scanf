@@ -47,16 +47,26 @@
  * - get character - fopen to use the stream? getc from the stream? look into how it works
  * - %31f can be implemented (since it's a part of %f which also is a project requirement to implement)
  *
+ * Notes on 12/15:
+ * - %s has to alocate one more spot of memory to have the sentinal value (0)
  */
 
 #include <stdio.h>
+#include <stdarg.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 // parameters:
 // - must use multiple parameters, unpack args to be able to assign to mutiple variables
 //   from one scanf
 // - have a sequence that parses the input string to look for mulitple values. maybe regex?
 
-int my_scanf(char *indentifier, int variable ) {
+int my_scanf(char *indentifier, [args]) {
+    // use variadic functions to collect multiple variables to assign to and unpack everything
+    // parse the identifier in a loop to find out what's being collected
+        // different structs/surbroutines for each identifier (use regex)
+
     if (indentifier == "%c") {
         int c = getchar();
         printf("%c",c);
