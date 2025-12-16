@@ -54,24 +54,249 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
 
-// parameters:
-// - must use multiple parameters, unpack args to be able to assign to mutiple variables
-//   from one scanf
-// - have a sequence that parses the input string to look for mulitple values. maybe regex?
-
-int my_scanf(char *indentifier, [args]) {
-    // use variadic functions to collect multiple variables to assign to and unpack everything
-    // parse the identifier in a loop to find out what's being collected
-        // different structs/surbroutines for each identifier (use regex)
-
-    if (indentifier == "%c") {
-        int c = getchar();
-        printf("%c",c);
+// helper functions
+static void skip_whitespace() {
+    int c;
+    while ((c = getchar()) != EOF && isspace(c)) {
+        // Keep reading until non-whitespace
     }
+    if (c != EOF) {
+        ungetc(c, stdin);  // Put back the non-whitespace char
+    }
+}
+
+
+// helper functions - modifiers
+int read_integer(int* d) {
+    skip_whitespace();
+
+    int c = getchar();
+
+    // Check for sign
+    int sign = 1;
+    if (c == '-') {
+        sign = -1;
+        c = getchar();
+    } else if (c == '+') {
+        c = getchar();
+    }
+
+    int value = 0;
+    int read_any_digits = 0;
+
+    while (isdigit(c)) {
+        int digit = c - '0';
+        value = value * 10 + digit;
+        read_any_digits = 1;
+        c = getchar();
+    }
+
+    // Put back the last character (it wasn't a digit)
+    if (c != EOF) {
+        ungetc(c, stdin);
+    }
+
+    if (read_any_digits) {
+        *d = value * sign;
+        return 1;
+    }
+
     return 0;
+}
+
+/*
+int read_float(float* f) {
+    // TO-DO
+    // %f - not yet defined
+    return 0;
+}
+
+int read_hex_integer(int* x) {
+    // TO-DO
+    // %x - not yet defined
+    return 0;
+}
+
+int read_char(char* c) {
+    int ch = getchar();
+
+    if (ch == EOF) {
+        return 0;
+    }
+
+    *c = (char)ch;
+    return 1;
+}
+
+int read_string(char* s) {
+    // TO-DO
+    // %s - not yet defined
+    return 0;
+}
+
+// 3 custom modifiers
+// reads an unsigned binary integer
+int read_unsigned_binary_int(int* b) {
+    // TO-DO
+    // %b - not yet defined
+    return 0;
+}
+
+int read_cipher(char* q, int offset) {
+    // TO-DO
+    // %d - not yet defined
+    return 0;
+}
+
+// similar to '%s' adds "lol" to the end of every string
+int read_gen_z(char* z) {
+    // TO-DO
+    // %z - not yet defined
+    return 0;
+}
+*/
+
+// - have a sequence that parses the input string to look for multiple values. maybe regex?
+int my_scanf(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    int assigned_count = 0;
+
+    for (int i = 0; format[i] != '\0'; i++) {
+        if (format[i] == '%') {
+            char specifier = format[i + 1];
+
+            switch (specifier) {
+                case 'd': {
+                    int *ptr = va_arg(args, int*);
+                    if (read_integer(ptr)) {
+                        assigned_count++;
+                    } else {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    i++;  // Skip the specifier character
+                    break;
+                }
+                /*
+                case 'f': {
+                    float *ptr = va_arg(args, float*);
+                    if (read_float(ptr)) {
+                        assigned_count++;
+                    } else {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    i++;
+                    break;
+                }
+
+                case 'x': {
+                    int *ptr = va_arg(args, int*);
+                    if (read_hex_integer(ptr)) {
+                        assigned_count++;
+                    } else {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    i++;
+                    break;
+                }
+
+                case 'c': {
+                    char *ptr = va_arg(args, char*);
+                    if (read_char(ptr)) {
+                        assigned_count++;
+                    } else {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    i++;
+                    break;
+                }
+
+                case 's': {
+                    char *ptr = va_arg(args, char*);
+                    if (read_string(ptr)) {
+                        assigned_count++;
+                    } else {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    i++;
+                    break;
+                }
+
+                // ============================================
+                // CUSTOM EXTENSIONS
+                // ============================================
+
+                case 'b': {
+                    // Custom: Binary integer
+                    int *ptr = va_arg(args, int*);
+                    if (read_unsigned_binary_int(ptr)) {
+                        assigned_count++;
+                    } else {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    i++;
+                    break;
+                }
+
+                case 'q': {
+                    // Custom: Cipher with offset (offset is next arg)
+                    char *ptr = va_arg(args, char*);
+                    int offset = va_arg(args, int);
+                    if (read_cipher(ptr, offset)) {
+                        assigned_count++;
+                    } else {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    i++;
+                    break;
+                }
+
+                case 'z': {
+                    // Custom: Gen Z string (adds "lol")
+                    char *ptr = va_arg(args, char*);
+                    if (read_gen_z(ptr)) {
+                        assigned_count++;
+                    } else {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    i++;
+                    break;
+                }
+                */
+
+                default:
+                    // Unknown specifier - skip it
+                    i++;
+                    break;
+            }
+        } else if (isspace(format[i])) {
+            // Format has whitespace - skip whitespace in input
+            skip_whitespace();
+        } else {
+            // Literal character in format - must match input
+            int c = getchar();
+            if (c != format[i]) {
+                // Mismatch - stop processing
+                if (c != EOF) {
+                    ungetc(c, stdin);
+                }
+                va_end(args);
+                return assigned_count;
+            }
+        }
+    }
+
+    va_end(args);
+    return assigned_count;
 }
 
 int main()
@@ -80,9 +305,16 @@ int main()
     // char x[] = "";
     // scanf("%s", &x);
     // printf(x);
-    char c;
-    my_scanf("%c", &c);
-    printf("%c\n", c);
-
+    int d = 0;
+    int f = 0;
+    printf("Enter an integer (for scanf): ");
+    if (scanf("%d", &d) != 1) {
+        printf("Invalid input!\n");
+        return 1;
+    }
+    printf("Enter an integer (for my_scanf): ");
+    my_scanf("%d", &f);
+    printf("scanf: %d\n", d);
+    printf("my_scanf: %d\n", f);
     return 0;
 }
