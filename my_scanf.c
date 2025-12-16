@@ -58,20 +58,67 @@
 #include <string.h>
 
 // parameters:
-// - must use multiple parameters, unpack args to be able to assign to mutiple variables
-//   from one scanf
 // - have a sequence that parses the input string to look for mulitple values. maybe regex?
+int my_scanf(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    int assinged_count = 0;
 
-int my_scanf(char *indentifier, [args]) {
-    // use variadic functions to collect multiple variables to assign to and unpack everything
-    // parse the identifier in a loop to find out what's being collected
-        // different structs/surbroutines for each identifier (use regex)
+    for (int i = 0; format[i] != '\0'; i++) {
+        if (format[i] == '%') {
+            // temporary; have to figure out how to get numbers later
+            // probably with a while loop
+            char specifier = format[i + 1];
 
-    if (indentifier == "%c") {
-        int c = getchar();
-        printf("%c",c);
+            switch(specifier) {
+                case 'd': {
+                    // might wrap the code for cases into helper functions to make
+                    // code more readable; need to learn more about public/private
+                    // access in c
+                    int *ptr = va_arg(args, int*);
+
+                    // Skip whitespace
+                    int c = getchar();
+                    while (isspace(c)) {
+                        c = getchar();
+                    }
+
+                    // Check for sign
+                    int sign = 1;
+                    if (c == '-') {
+                        sign = -1;
+                        c = getchar();
+                    } else if (c == '+') {
+                        c = getchar();
+                    }
+
+                    // SRead digits and build the number
+                    int value = 0;
+                    int read_any_digits = 0;
+
+                    while (isdigit(c)) {
+                        int digit = c - '0';
+                        value = value * 10 + digit;
+                        read_any_digits = 1;
+                        c = getchar();
+                    }
+
+                    // Only assign if we successfully read digits
+                    if (read_any_digits) {
+                        *ptr = value * sign;
+                        assinged_count++;
+                    } else {
+                        printf("Failed to read integer!\n");
+                    }
+
+                    break;
+                }
+            }
+        }
     }
-    return 0;
+
+    va_end(args);
+    return assinged_count;
 }
 
 int main()
@@ -80,9 +127,13 @@ int main()
     // char x[] = "";
     // scanf("%s", &x);
     // printf(x);
-    char c;
-    my_scanf("%c", &c);
-    printf("%c\n", c);
-
+    int c;
+    int f;
+    printf("Enter an integer (for scanf): ");
+    scanf("%d", &c);
+    printf("Enter an integer (for my_scanf): ");
+    my_scanf("%d", &f);
+    printf("scanf: %d\n", c);
+    printf("my_scanf: %d\n", f);
     return 0;
 }
