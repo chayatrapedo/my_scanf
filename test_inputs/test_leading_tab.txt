@@ -1,1 +1,1 @@
-		99 # Tab character
+		99
