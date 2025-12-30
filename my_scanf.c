@@ -299,6 +299,7 @@ int my_scanf(const char *format, ...) {
     return assigned_count;
 }
 
+/*
 int main()
 {
     // playing around with scanf to see how it works
@@ -308,13 +309,14 @@ int main()
     int d = 0;
     int f = 0;
     printf("Enter an integer (for scanf): ");
-    if (scanf("%d", &d) != 1) {
-        printf("Invalid input!\n");
-        return 1;
-    }
-    printf("Enter an integer (for my_scanf): ");
+    // if (scanf("%d", &d) != 1) {
+    //     printf("Invalid input!\n");
+    //     return 1;
+    // }
+    // printf("Enter an integer (for my_scanf): ");
     my_scanf("%d", &f);
-    printf("scanf: %d\n", d);
+    // printf("scanf: %d\n", d);
     printf("my_scanf: %d\n", f);
     return 0;
 }
+*/
