@@ -23,7 +23,7 @@ int read_integer(int* d) {
 
     // Now c is either a non-whitespace char or EOF
     if (c == EOF) {
-        return 0;
+        return -1;
     }
 
     // Check for sign
@@ -58,6 +58,60 @@ int read_integer(int* d) {
     return 0;
 }
 
+/*
+int read_float(float* f) {
+    // TO-DO
+    // %f - not yet defined
+    return 0;
+}
+
+int read_hex_integer(int* x) {
+    // TO-DO
+    // %x - not yet defined
+    return 0;
+}
+*/
+
+int read_char(char* c) {
+    int ch = getchar();
+
+    if (ch == EOF) {
+        return 0;
+    }
+
+    *c = (char)ch;
+    return 1;
+}
+
+/*
+int read_string(char* s, int size) {
+    // TO-DO
+    // %s - not yet defined
+    return 0;
+}
+
+// 3 custom modifiers
+// reads an unsigned binary integer
+int read_unsigned_binary_int(int* b) {
+    // TO-DO
+    // %b - not yet defined
+    return 0;
+}
+
+int read_cipher(char* q, int offset) {
+    // TO-DO
+    // %d - not yet defined
+    return 0;
+}
+
+// similar to '%s' adds "lol" to the end of every string
+int read_gen_z(char* z) {
+    // TO-DO
+    // %z - not yet defined
+    return 0;
+}
+*/
+
 // - have a sequence that parses the input string to look for multiple values. maybe regex?
 int my_scanf(const char *format, ...) {
     va_list args;
@@ -71,7 +125,25 @@ int my_scanf(const char *format, ...) {
             switch (specifier) {
                 case 'd': {
                     int *ptr = va_arg(args, int*);
-                    if (read_integer(ptr)) {
+                    int result = read_integer(ptr);
+                    if (result == 1) {
+                        assigned_count++;
+                    } else if (result == -1) {
+                        // EOF encountered
+                        va_end(args);
+                        return (assigned_count == 0) ? -1 : assigned_count;
+                    } else {
+                        // Conversion failed
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    i++;
+                    break;
+                }
+
+                case 'c': {
+                    char *ptr = va_arg(args, char*);
+                    if (read_char(ptr)) {
                         assigned_count++;
                     } else {
                         va_end(args);
@@ -106,3 +178,12 @@ int my_scanf(const char *format, ...) {
     va_end(args);
     return assigned_count;
 }
+
+/*
+int main() {
+    // testing bad pointer assignment to scanf()
+    int res;
+    my_scanf("%c", &res);
+    printf("%d",res);
+}
+*/

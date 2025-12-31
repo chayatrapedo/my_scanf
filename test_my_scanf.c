@@ -20,7 +20,7 @@ typedef enum {
 // Helper: Check if behavior matches expectations
 int check_behavior_match(int scanf_ret, int my_scanf_ret, int scanf_val, int my_scanf_val, ExpectedBehavior expected) {
     int both_succeeded = (scanf_ret > 0 && my_scanf_ret > 0);
-    int both_failed = (scanf_ret == 0 && my_scanf_ret == 0);
+    int both_failed = (scanf_ret == 0 && my_scanf_ret == 0) || (scanf_ret == -1 && my_scanf_ret == -1);
     int values_match = (scanf_val == my_scanf_val);
     int returns_match = (scanf_ret == my_scanf_ret);
 
@@ -75,6 +75,8 @@ int test_scanf_int(const char *test_name, const char *input_file, ExpectedBehavi
     int saved_stdin = dup(STDIN_FILENO);
     dup2(fileno(fp), STDIN_FILENO);
     fflush(stdout);
+    clearerr(stdin);  // Clear EOF/error flags from stdin
+
 
     int scanf_val = -999;
     int scanf_ret = scanf("%d", &scanf_val);
@@ -135,6 +137,8 @@ int test_scanf_two_ints(const char *test_name, const char *input_file, ExpectedB
     int saved_stdin = dup(STDIN_FILENO);
     dup2(fileno(fp), STDIN_FILENO);
     fflush(stdout);
+    clearerr(stdin);  // Clear EOF/error flags from stdin
+
 
     int scanf_val1 = -999, scanf_val2 = -999;
     int scanf_ret = scanf("%d %d", &scanf_val1, &scanf_val2);
@@ -204,6 +208,8 @@ int test_scanf_three_ints(const char *test_name, const char *input_file, Expecte
     int saved_stdin = dup(STDIN_FILENO);
     dup2(fileno(fp), STDIN_FILENO);
     fflush(stdout);
+    clearerr(stdin);  // Clear EOF/error flags from stdin
+
 
     int scanf_val1 = -999, scanf_val2 = -999, scanf_val3 = -999;
     int scanf_ret = scanf("%d %d %d", &scanf_val1, &scanf_val2, &scanf_val3);
@@ -261,6 +267,7 @@ int test_scanf_three_ints(const char *test_name, const char *input_file, Expecte
     return passed;
 }
 
+
 int main() {
     printf("  MY_SCANF TEST SUITE\n");
     printf("\n=== %%d Tests ==========================\n");
@@ -302,3 +309,24 @@ int main() {
 
     return (tests_failed == 0) ? 0 : 1;
 }
+/*
+int main() {
+    printf("Test 1: Empty input\n");
+    FILE *fp = fopen("test_inputs/test_empty.txt", "r");
+    int val = -999;
+    int ret = scanf("%d", &val);
+    printf("scanf returned: %d, value: %d\n", ret, val);
+    fclose(fp);
+
+    printf("\nTest 2: Two integers from file\n");
+    fp = fopen("test_inputs/test_two_ints.txt", "r");
+    int val1 = -999, val2 = -999;
+    ret = scanf("%d", &val1);
+    printf("First scanf returned: %d, value: %d\n", ret, val1);
+    ret = scanf("%d", &val2);
+    printf("Second scanf returned: %d, value: %d\n", ret, val2);
+    fclose(fp);
+
+    return 0;
+}
+*/
