@@ -74,9 +74,8 @@ int read_hex_integer(int* x) {
 
 int read_char(char* c) {
     int ch = getchar();
-
     if (ch == EOF) {
-        return 0;
+        return -1;
     }
 
     *c = (char)ch;
@@ -143,13 +142,17 @@ int my_scanf(const char *format, ...) {
 
                 case 'c': {
                     char *ptr = va_arg(args, char*);
-                    if (read_char(ptr)) {
+                    int result = read_char(ptr);
+                    if (result == 1) {
                         assigned_count++;
+                    } else if (result == -1) {
+                        va_end(args);
+                        return (assigned_count == 0) ? -1 : assigned_count;
                     } else {
                         va_end(args);
                         return assigned_count;
                     }
-                    i++;  // Skip the specifier character
+                    i++;
                     break;
                 }
 
