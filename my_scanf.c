@@ -2,6 +2,66 @@
 #include <stdarg.h>
 #include <ctype.h>
 
+
+// format specifier structure
+typedef struct {
+    char specifier;      // 'd', 's', 'c', 'f', 'x', 'z', 'q', 'b'
+    int field_width;     // if app. for %31s, this is 31; 0 means no limit
+    char length_mod[3];  // "ll", "l", "h", or ""
+    int suppress;        // 1 if '*' is present, 0 otherwise
+} FormatSpecifier;
+
+// Parse format specifier and return number of characters consumed
+// format should point to the character AFTER the '%'
+static int parse_format_specifier(const char *format, FormatSpecifier *spec) {
+    int pos = 0;
+
+    // Initialize
+    spec->field_width = 0;
+    spec->length_mod[0] = '\0';
+    spec->specifier = '\0';
+    spec->suppress = 0;
+
+    // Because there is a set order/pattern for different elements of the modifiers
+    // i.e.: characters (*) then numbers then letters
+    // they are being parsed in that order
+
+    // Check for assignment suppression '*' first
+    if (format[pos] == '*') {
+        spec->suppress = 1;
+        pos++;
+    }
+
+    // Parse field width (digits) next
+    while (isdigit(format[pos])) {
+        spec->field_width = spec->field_width * 10 + (format[pos] - '0');
+        pos++;
+    }
+
+    // Parse length modifier (h, l, ll)
+    if (format[pos] == 'h') {
+        spec->length_mod[0] = 'h';
+        spec->length_mod[1] = '\0';
+        pos++;
+    } else if (format[pos] == 'l') {
+        spec->length_mod[0] = 'l';
+        if (format[pos + 1] == 'l') {
+            spec->length_mod[1] = 'l';
+            spec->length_mod[2] = '\0';
+            pos += 2;
+        } else {
+            spec->length_mod[1] = '\0';
+            pos++;
+        }
+    }
+
+    // Parse conversion specifier
+    spec->specifier = format[pos];
+    pos++;
+
+    return pos;
+}
+
 // helper functions
 static void skip_whitespace() {
     int c;
@@ -130,35 +190,37 @@ int read_gen_z(char* z) {
 }
 */
 
-// - have a sequence that parses the input string to look for multiple values. maybe regex?
+// my scanf() function
 int my_scanf(const char *format, ...) {
     va_list args;
     va_start(args, format);
     int assigned_count = 0;
     int i = 0;
-    int s_size = -1; // anticipate option for string size
 
     while (format[i] != '\0') {
         if (format[i] == '%') {
             i++;  // Move past '%'
-            if (format[i] == '\0') {  // Check if we've hit the end
+            if (format[i] == '\0') {
                 break;
             }
 
-            char specifier = format[i];
+            // Parse the format specification
+            FormatSpecifier spec;
+            int consumed = parse_format_specifier(&format[i], &spec);
+            i += consumed;
 
-            switch (specifier) {
+            // Handle based on specifier (ignore modifiers for now)
+            switch (spec.specifier) {
                 case 'd': {
+                    // For now, ignore length modifiers and suppress flag
                     int *ptr = va_arg(args, int*);
                     int result = read_integer(ptr);
                     if (result == 1) {
                         assigned_count++;
                     } else if (result == -1) {
-                        // EOF encountered
                         va_end(args);
                         return (assigned_count == 0) ? -1 : assigned_count;
                     } else {
-                        // Conversion failed
                         va_end(args);
                         return assigned_count;
                     }
@@ -166,11 +228,12 @@ int my_scanf(const char *format, ...) {
                 }
 
                 case 'c': {
+                    // For now, ignore suppress flag
                     char *ptr = va_arg(args, char*);
                     int result = read_char(ptr);
                     if (result == 1) {
                         assigned_count++;
-                    } else {  // result == -1 (EOF)
+                    } else {
                         va_end(args);
                         return (assigned_count == 0) ? -1 : assigned_count;
                     }
@@ -178,9 +241,9 @@ int my_scanf(const char *format, ...) {
                 }
 
                 case 's': {
+                    // For now, ignore field width and suppress flag
                     char *ptr = va_arg(args, char*);
-                    if (s_size == -1) {s_size = 256;}; // arbitrary default width
-                    int result = read_string(ptr, s_size);
+                    int result = read_string(ptr, 256);
                     if (result == 1) {
                         assigned_count++;
                     } else if (result == -1) {
@@ -197,6 +260,8 @@ int my_scanf(const char *format, ...) {
                     // Unknown specifier - skip it
                     break;
             }
+
+            continue;  // Skip the i++ at the end of the while loop
         } else if (isspace(format[i])) {
             // Format has whitespace - skip whitespace in input
             skip_whitespace();
@@ -213,13 +278,12 @@ int my_scanf(const char *format, ...) {
             }
         }
 
-        i++;  // Increment at the end of the loop
+        i++;
     }
 
     va_end(args);
     return assigned_count;
 }
-
 /*
 int main() {
     // testing bad pointer assignment to scanf()
