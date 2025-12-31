@@ -65,48 +65,32 @@ int test_scanf_int(const char *test_name, const char *input_file, ExpectedBehavi
     printf("Input file: %s\n", input_file);
 
     // Test scanf()
-    FILE *fp = fopen(input_file, "r");
-    if (!fp) {
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
         printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
         tests_failed++;
         return 0;
     }
 
-    int saved_stdin = dup(STDIN_FILENO);
-    dup2(fileno(fp), STDIN_FILENO);
-    fflush(stdout);
-    clearerr(stdin);  // Clear EOF/error flags from stdin
-
-
     int scanf_val = -999;
     int scanf_ret = scanf("%d", &scanf_val);
 
-    fflush(stdin);
-    fclose(fp);
-    dup2(saved_stdin, STDIN_FILENO);
-    close(saved_stdin);
+    freopen("/dev/tty", "r", stdin);
 
     printf("\tscanf()    returned: %d, value: %d\n", scanf_ret, scanf_val);
 
     // Test my_scanf()
-    fp = fopen(input_file, "r");
-    if (!fp) {
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
         printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
         tests_failed++;
         return 0;
     }
 
-    saved_stdin = dup(STDIN_FILENO);
-    dup2(fileno(fp), STDIN_FILENO);
-    fflush(stdout);
-
     int my_scanf_val = -999;
     int my_scanf_ret = my_scanf("%d", &my_scanf_val);
 
-    fflush(stdin);
-    fclose(fp);
-    dup2(saved_stdin, STDIN_FILENO);
-    close(saved_stdin);
+    freopen("/dev/tty", "r", stdin);
 
     printf("\tmy_scanf() returned: %d, value: %d\n", my_scanf_ret, my_scanf_val);
 
@@ -127,44 +111,30 @@ int test_scanf_two_ints(const char *test_name, const char *input_file, ExpectedB
     printf("Input file: %s\n", input_file);
 
     // Test scanf()
-    FILE *fp = fopen(input_file, "r");
-    if (!fp) {
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
         printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
         tests_failed++;
         return 0;
     }
 
-    int saved_stdin = dup(STDIN_FILENO);
-    dup2(fileno(fp), STDIN_FILENO);
-    fflush(stdout);
-    clearerr(stdin);  // Clear EOF/error flags from stdin
-
-
     int scanf_val1 = -999, scanf_val2 = -999;
     int scanf_ret = scanf("%d %d", &scanf_val1, &scanf_val2);
 
-    dup2(saved_stdin, STDIN_FILENO);
-    close(saved_stdin);
-    fclose(fp);
+    freopen("/dev/tty", "r", stdin);
 
     // Test my_scanf()
-    fp = fopen(input_file, "r");
-    if (!fp) {
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
         printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
         tests_failed++;
         return 0;
     }
 
-    saved_stdin = dup(STDIN_FILENO);
-    dup2(fileno(fp), STDIN_FILENO);
-    fflush(stdout);
-
     int my_scanf_val1 = -999, my_scanf_val2 = -999;
     int my_scanf_ret = my_scanf("%d %d", &my_scanf_val1, &my_scanf_val2);
 
-    dup2(saved_stdin, STDIN_FILENO);
-    close(saved_stdin);
-    fclose(fp);
+    freopen("/dev/tty", "r", stdin);
 
     // Check results
     int values_match = (scanf_val1 == my_scanf_val1) && (scanf_val2 == my_scanf_val2);
@@ -198,44 +168,30 @@ int test_scanf_three_ints(const char *test_name, const char *input_file, Expecte
     printf("Input file: %s\n", input_file);
 
     // Test scanf()
-    FILE *fp = fopen(input_file, "r");
-    if (!fp) {
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
         printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
         tests_failed++;
         return 0;
     }
 
-    int saved_stdin = dup(STDIN_FILENO);
-    dup2(fileno(fp), STDIN_FILENO);
-    fflush(stdout);
-    clearerr(stdin);  // Clear EOF/error flags from stdin
-
-
     int scanf_val1 = -999, scanf_val2 = -999, scanf_val3 = -999;
     int scanf_ret = scanf("%d %d %d", &scanf_val1, &scanf_val2, &scanf_val3);
 
-    dup2(saved_stdin, STDIN_FILENO);
-    close(saved_stdin);
-    fclose(fp);
+    freopen("/dev/tty", "r", stdin);
 
     // Test my_scanf()
-    fp = fopen(input_file, "r");
-    if (!fp) {
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
         printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
         tests_failed++;
         return 0;
     }
 
-    saved_stdin = dup(STDIN_FILENO);
-    dup2(fileno(fp), STDIN_FILENO);
-    fflush(stdout);
-
     int my_scanf_val1 = -999, my_scanf_val2 = -999, my_scanf_val3 = -999;
     int my_scanf_ret = my_scanf("%d %d %d", &my_scanf_val1, &my_scanf_val2, &my_scanf_val3);
 
-    dup2(saved_stdin, STDIN_FILENO);
-    close(saved_stdin);
-    fclose(fp);
+    freopen("/dev/tty", "r", stdin);
 
     // Check results
     int values_match = (scanf_val1 == my_scanf_val1) &&
@@ -273,44 +229,32 @@ int test_scanf_char(const char *test_name, const char *input_file, ExpectedBehav
     printf("Input file: %s\n", input_file);
 
     // Test scanf()
-    FILE *fp = fopen(input_file, "r");
-    if (!fp) {
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
         printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
         tests_failed++;
         return 0;
     }
 
-    int fd = fileno(fp);
-    int saved_stdin = dup(STDIN_FILENO);
-    dup2(fd, STDIN_FILENO);
-
     char scanf_val = '\0';
     int scanf_ret = scanf("%c", &scanf_val);
 
-    dup2(saved_stdin, STDIN_FILENO);
-    close(saved_stdin);
-    fclose(fp);
+    freopen("/dev/tty", "r", stdin);
 
     printf("\tscanf()    returned: %d, value: %c\n", scanf_ret, scanf_val);
 
     // Test my_scanf()
-    fp = fopen(input_file, "r");
-    if (!fp) {
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
         printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
         tests_failed++;
         return 0;
     }
 
-    fd = fileno(fp);
-    saved_stdin = dup(STDIN_FILENO);
-    dup2(fd, STDIN_FILENO);
-
     char my_scanf_val = '\0';
     int my_scanf_ret = my_scanf("%c", &my_scanf_val);
 
-    dup2(saved_stdin, STDIN_FILENO);
-    close(saved_stdin);
-    fclose(fp);
+    freopen("/dev/tty", "r", stdin);
 
     printf("\tmy_scanf() returned: %d, value: %c\n", my_scanf_ret, my_scanf_val);
 
@@ -361,8 +305,6 @@ int main() {
     test_scanf_char("Space", "test_inputs/test_char_space.txt", EXPECT_SUCCESS);
     test_scanf_char("Digit", "test_inputs/test_char_digit.txt", EXPECT_SUCCESS);
 
-
-
     // Print summary
     printf("\n========================================\n");
     printf("TEST SUMMARY\n");
@@ -373,24 +315,3 @@ int main() {
 
     return (tests_failed == 0) ? 0 : 1;
 }
-/*
-int main() {
-    printf("Test 1: Empty input\n");
-    FILE *fp = fopen("test_inputs/test_empty.txt", "r");
-    int val = -999;
-    int ret = scanf("%d", &val);
-    printf("scanf returned: %d, value: %d\n", ret, val);
-    fclose(fp);
-
-    printf("\nTest 2: Two integers from file\n");
-    fp = fopen("test_inputs/test_two_ints.txt", "r");
-    int val1 = -999, val2 = -999;
-    ret = scanf("%d", &val1);
-    printf("First scanf returned: %d, value: %d\n", ret, val1);
-    ret = scanf("%d", &val2);
-    printf("Second scanf returned: %d, value: %d\n", ret, val2);
-    fclose(fp);
-
-    return 0;
-}
-*/
