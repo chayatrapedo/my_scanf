@@ -280,19 +280,16 @@ int test_scanf_char(const char *test_name, const char *input_file, ExpectedBehav
         return 0;
     }
 
+    int fd = fileno(fp);
     int saved_stdin = dup(STDIN_FILENO);
-    dup2(fileno(fp), STDIN_FILENO);
-    fflush(stdout);
-    clearerr(stdin);  // Clear EOF/error flags from stdin
-
+    dup2(fd, STDIN_FILENO);
 
     char scanf_val = '\0';
     int scanf_ret = scanf("%c", &scanf_val);
 
-    fflush(stdin);
-    fclose(fp);
     dup2(saved_stdin, STDIN_FILENO);
     close(saved_stdin);
+    fclose(fp);
 
     printf("\tscanf()    returned: %d, value: %c\n", scanf_ret, scanf_val);
 
@@ -304,19 +301,16 @@ int test_scanf_char(const char *test_name, const char *input_file, ExpectedBehav
         return 0;
     }
 
+    fd = fileno(fp);
     saved_stdin = dup(STDIN_FILENO);
-    dup2(fileno(fp), STDIN_FILENO);
-    fflush(stdout);
-    clearerr(stdin);  // Add this line
-
+    dup2(fd, STDIN_FILENO);
 
     char my_scanf_val = '\0';
     int my_scanf_ret = my_scanf("%c", &my_scanf_val);
 
-    fflush(stdin);
-    fclose(fp);
     dup2(saved_stdin, STDIN_FILENO);
     close(saved_stdin);
+    fclose(fp);
 
     printf("\tmy_scanf() returned: %d, value: %c\n", my_scanf_ret, my_scanf_val);
 
@@ -330,7 +324,6 @@ int test_scanf_char(const char *test_name, const char *input_file, ExpectedBehav
     printf("***\n");
     return passed;
 }
-
 
 int main() {
     printf("  MY_SCANF TEST SUITE\n");

@@ -119,7 +119,12 @@ int my_scanf(const char *format, ...) {
 
     for (int i = 0; format[i] != '\0'; i++) {
         if (format[i] == '%') {
-            char specifier = format[i + 1];
+            i++;  // Move this here - increment once before checking specifier
+            if (format[i] == '\0') {  // Check if we've hit the end
+                break;
+            }
+
+            char specifier = format[i];
 
             switch (specifier) {
                 case 'd': {
@@ -136,8 +141,7 @@ int my_scanf(const char *format, ...) {
                         va_end(args);
                         return assigned_count;
                     }
-                    i++;
-                    break;
+                    break;  // Remove the i++ from here
                 }
 
                 case 'c': {
@@ -152,14 +156,12 @@ int my_scanf(const char *format, ...) {
                         va_end(args);
                         return assigned_count;
                     }
-                    i++;
-                    break;
+                    break;  // Remove the i++ from here
                 }
 
                 default:
                     // Unknown specifier - skip it
-                    i++;
-                    break;
+                    break;  // Remove the i++ from here
             }
         } else if (isspace(format[i])) {
             // Format has whitespace - skip whitespace in input
