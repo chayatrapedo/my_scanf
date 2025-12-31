@@ -1,6 +1,7 @@
 #include "my_scanf.h"
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 // Test statistics
 static int tests_run = 0;
@@ -328,6 +329,66 @@ int test_scanf_int_char(const char *test_name, const char *input_file, ExpectedB
     return passed;
 }
 
+int test_scanf_string(const char *test_name, const char *input_file, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char scanf_val[256] = {0};
+    int scanf_ret = scanf("%s", scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: '%s'\n", scanf_ret, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char my_scanf_val[256] = {0};
+    int my_scanf_ret = my_scanf("%s", my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: '%s'\n", my_scanf_ret, my_scanf_val);
+
+    // Check behavior
+    int values_match = (strcmp(scanf_val, my_scanf_val) == 0);
+    int returns_match = (scanf_ret == my_scanf_ret);
+
+    printf("Expected: %s\n", expected == EXPECT_SUCCESS ? "SUCCESS" : "FAILURE");
+    printf("Behavior match: %s\n", (returns_match && values_match) ? "YES" : "NO");
+
+    int passed = 0;
+    if (expected == EXPECT_SUCCESS && returns_match && values_match && scanf_ret == 1) {
+        printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
+        passed = 1;
+        tests_passed++;
+    } else if (expected == EXPECT_FAILURE && scanf_ret == 0 && my_scanf_ret == 0) {
+        printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
+        passed = 1;
+        tests_passed++;
+    } else {
+        printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+    }
+
+    printf("***\n");
+    return passed;
+}
+
 
 int main() {
     printf("  MY_SCANF TEST SUITE\n");
@@ -365,6 +426,9 @@ int main() {
     test_scanf_char("Space", "test_inputs/test_char_space.txt", EXPECT_SUCCESS);
     test_scanf_char("Digit", "test_inputs/test_char_digit.txt", EXPECT_SUCCESS);
 
+    printf("\n=== %%s Tests ==========================\n");
+    test_scanf_string("Simple string", "test_inputs/test_string.txt", EXPECT_SUCCESS);
+    test_scanf_string("String with leading space", "test_inputs/test_string_space.txt", EXPECT_SUCCESS);
 
     printf("\n=== %%d %%c Tests ======================\n");
     test_scanf_int_char("Integer and character", "test_inputs/test_d_then_c.txt", EXPECT_SUCCESS);

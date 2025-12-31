@@ -82,13 +82,32 @@ int read_char(char* c) {
     return 1;
 }
 
-/*
-int read_string(char* s, int size) {
-    // TO-DO
-    // %s - not yet defined
-    return 0;
+int read_string(char* s, int max_chars) {
+    int c = getchar();
+    while (c != EOF && isspace(c)) {
+        c = getchar();
+    }
+
+    if (c == EOF) {
+        return -1;
+    }
+
+    int count = 0;
+    while (c != EOF && !isspace(c) && count < max_chars) {
+        s[count++] = (char)c;
+        c = getchar();
+    }
+
+    s[count] = '\0';
+
+    if (c != EOF) {
+        ungetc(c, stdin);
+    }
+
+    return (count > 0) ? 1 : 0;
 }
 
+/*
 // 3 custom modifiers
 // reads an unsigned binary integer
 int read_unsigned_binary_int(int* b) {
@@ -117,6 +136,7 @@ int my_scanf(const char *format, ...) {
     va_start(args, format);
     int assigned_count = 0;
     int i = 0;
+    int s_size = -1; // anticipate option for string size
 
     while (format[i] != '\0') {
         if (format[i] == '%') {
@@ -157,6 +177,22 @@ int my_scanf(const char *format, ...) {
                     break;
                 }
 
+                case 's': {
+                    char *ptr = va_arg(args, char*);
+                    if (s_size == -1) {s_size = 256;}; // arbitrary default width
+                    int result = read_string(ptr, s_size);
+                    if (result == 1) {
+                        assigned_count++;
+                    } else if (result == -1) {
+                        va_end(args);
+                        return (assigned_count == 0) ? -1 : assigned_count;
+                    } else {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    break;
+                }
+
                 default:
                     // Unknown specifier - skip it
                     break;
@@ -187,8 +223,8 @@ int my_scanf(const char *format, ...) {
 /*
 int main() {
     // testing bad pointer assignment to scanf()
-    int res;
-    my_scanf("%c", &res);
-    printf("%d",res);
+    char res[30];
+    my_scanf("%s", &res);
+    printf("%s",res);
 }
 */
