@@ -267,6 +267,70 @@ int test_scanf_three_ints(const char *test_name, const char *input_file, Expecte
     return passed;
 }
 
+int test_scanf_char(const char *test_name, const char *input_file, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+
+    // Test scanf()
+    FILE *fp = fopen(input_file, "r");
+    if (!fp) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    int saved_stdin = dup(STDIN_FILENO);
+    dup2(fileno(fp), STDIN_FILENO);
+    fflush(stdout);
+    clearerr(stdin);  // Clear EOF/error flags from stdin
+
+
+    char scanf_val = '\0';
+    int scanf_ret = scanf("%c", &scanf_val);
+
+    fflush(stdin);
+    fclose(fp);
+    dup2(saved_stdin, STDIN_FILENO);
+    close(saved_stdin);
+
+    printf("\tscanf()    returned: %d, value: %c\n", scanf_ret, scanf_val);
+
+    // Test my_scanf()
+    fp = fopen(input_file, "r");
+    if (!fp) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    saved_stdin = dup(STDIN_FILENO);
+    dup2(fileno(fp), STDIN_FILENO);
+    fflush(stdout);
+    clearerr(stdin);  // Add this line
+
+
+    char my_scanf_val = '\0';
+    int my_scanf_ret = my_scanf("%c", &my_scanf_val);
+
+    fflush(stdin);
+    fclose(fp);
+    dup2(saved_stdin, STDIN_FILENO);
+    close(saved_stdin);
+
+    printf("\tmy_scanf() returned: %d, value: %c\n", my_scanf_ret, my_scanf_val);
+
+    // Check behavior
+    int passed = check_behavior_match(scanf_ret, my_scanf_ret, scanf_val, my_scanf_val, expected);
+    if (passed) {
+        tests_passed++;
+    } else {
+        tests_failed++;
+    }
+    printf("***\n");
+    return passed;
+}
+
 
 int main() {
     printf("  MY_SCANF TEST SUITE\n");
@@ -298,6 +362,13 @@ int main() {
     // Multiple integers
     test_scanf_two_ints("Two integers", "test_inputs/test_two_ints.txt", EXPECT_SUCCESS);
     test_scanf_three_ints("Three integers", "test_inputs/test_three_ints.txt", EXPECT_SUCCESS);
+
+    printf("\n=== %%c Tests ==========================\n");
+    test_scanf_char("One character", "test_inputs/test_char_a.txt", EXPECT_SUCCESS);
+    test_scanf_char("Space", "test_inputs/test_char_space.txt", EXPECT_SUCCESS);
+    test_scanf_char("Digit", "test_inputs/test_char_digit.txt", EXPECT_SUCCESS);
+
+
 
     // Print summary
     printf("\n========================================\n");
