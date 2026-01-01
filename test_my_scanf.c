@@ -279,6 +279,61 @@ int test_scanf_suppress_int(const char *test_name, const char *input_file, const
     return passed;
 }
 
+int test_scanf_long(const char *test_name, const char *input_file) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    long scanf_val = -999;
+    int scanf_ret = scanf("%ld", &scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: %ld\n", scanf_ret, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    long my_scanf_val = -999;
+    int my_scanf_ret = my_scanf("%ld", &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: %ld\n", my_scanf_ret, my_scanf_val);
+
+    // Check results
+    int values_match = (scanf_val == my_scanf_val);
+    int returns_match = (scanf_ret == my_scanf_ret);
+
+    printf("Behavior match: %s\n", (returns_match && values_match) ? "YES" : "NO");
+
+    int passed = 0;
+    if (returns_match && values_match && scanf_ret == 1) {
+        printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
+        passed = 1;
+        tests_passed++;
+    } else {
+        printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+    }
+
+    printf("***\n");
+    return passed;
+}
+
 int test_scanf_char(const char *test_name, const char *input_file, ExpectedBehavior expected) {
     tests_run++;
     printf("\nTEST: %s \n", test_name);
@@ -643,6 +698,11 @@ int main() {
     // Multiple integers
     test_scanf_two_ints("Two integers", "test_inputs/test_two_ints.txt", EXPECT_SUCCESS);
     test_scanf_three_ints("Three integers", "test_inputs/test_three_ints.txt", EXPECT_SUCCESS);
+
+    printf("\n=== %%ld Tests =========================\n");
+    test_scanf_long("Long integer", "test_inputs/test_long.txt");
+    test_scanf_long("Negative long", "test_inputs/test_long_neg.txt");
+    test_scanf_long("LONG_MAX", "test_inputs/test_long_max.txt");
 
     printf("\n=== %%c Tests ==========================\n");
     test_scanf_char("One character", "test_inputs/test_char_a.txt", EXPECT_SUCCESS);
