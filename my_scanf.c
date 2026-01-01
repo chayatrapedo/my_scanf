@@ -212,15 +212,26 @@ int my_scanf(const char *format, ...) {
             // Handle based on specifier (ignore modifiers for now)
             switch (spec.specifier) {
                 case 'd': {
-                    // For now, ignore length modifiers and suppress flag
-                    int *ptr = va_arg(args, int*);
-                    int result = read_integer(ptr);
-                    if (result == 1) {
-                        assigned_count++;
-                    } else if (result == -1) {
+                    int result;
+
+                    if (spec.suppress) {
+                        int temp;
+                        result = read_integer(&temp);
+                        // Don't increment assigned_count
+                        // Don't call va_arg
+                    } else {
+                        int *ptr = va_arg(args, int*);
+                        result = read_integer(ptr);
+                        if (result == 1) {
+                            assigned_count++;
+                        }
+                    }
+
+                    // Handle EOF/failure
+                    if (result == -1) {
                         va_end(args);
                         return (assigned_count == 0) ? -1 : assigned_count;
-                    } else {
+                    } else if (result == 0) {
                         va_end(args);
                         return assigned_count;
                     }
@@ -228,12 +239,24 @@ int my_scanf(const char *format, ...) {
                 }
 
                 case 'c': {
-                    // For now, ignore suppress flag
-                    char *ptr = va_arg(args, char*);
-                    int result = read_char(ptr);
-                    if (result == 1) {
-                        assigned_count++;
+                    int result;
+
+                    if (spec.suppress) {
+                        char temp;
+                        result = read_char(&temp);
+                        // Don't increment assigned_count
+                        // Don't call va_arg
                     } else {
+                        // Normal case - get pointer from va_arg and store
+                        char *ptr = va_arg(args, char*);
+                        result = read_char(ptr);
+                        if (result == 1) {
+                            assigned_count++;
+                        }
+                    }
+
+                    // Handle EOF/failure
+                    if (result == -1) {
                         va_end(args);
                         return (assigned_count == 0) ? -1 : assigned_count;
                     }
