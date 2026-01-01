@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <string.h>
 
 
 // format specifier structure
@@ -96,6 +97,51 @@ int read_integer(int* d) {
     }
 
     int value = 0;
+    int read_any_digits = 0;
+
+    while (c != EOF && isdigit(c)) {
+        int digit = c - '0';
+        value = value * 10 + digit;
+        read_any_digits = 1;
+        c = getchar();
+    }
+
+    // Put back the last character (it wasn't a digit)
+    if (c != EOF) {
+        ungetc(c, stdin);
+    }
+
+    if (read_any_digits) {
+        *d = value * sign;
+        return 1;
+    }
+
+    return 0;
+}
+
+// variations of the read integer function
+int read_long(long* d) {
+    // Skip leading whitespace
+    int c = getchar();
+    while (c != EOF && isspace(c)) {
+        c = getchar();
+    }
+
+    // Now c is either a non-whitespace char or EOF
+    if (c == EOF) {
+        return -1;
+    }
+
+    // Check for sign
+    int sign = 1;
+    if (c == '-') {
+        sign = -1;
+        c = getchar();
+    } else if (c == '+') {
+        c = getchar();
+    }
+
+    long value = 0;
     int read_any_digits = 0;
 
     while (c != EOF && isdigit(c)) {
@@ -214,16 +260,29 @@ int my_scanf(const char *format, ...) {
                 case 'd': {
                     int result;
 
-                    if (spec.suppress) {
-                        int temp;
-                        result = read_integer(&temp);
-                        // Don't increment assigned_count
-                        // Don't call va_arg
+                    // Check for 'l' length modifier
+                    if (strcmp(spec.length_mod, "l") == 0) {
+                        if (spec.suppress) {
+                            long temp;
+                            result = read_long(&temp);
+                        } else {
+                            long *ptr = va_arg(args, long*);
+                            result = read_long(ptr);
+                            if (result == 1) {
+                                assigned_count++;
+                            }
+                        }
                     } else {
-                        int *ptr = va_arg(args, int*);
-                        result = read_integer(ptr);
-                        if (result == 1) {
-                            assigned_count++;
+                        // Default: regular int
+                        if (spec.suppress) {
+                            int temp;
+                            result = read_integer(&temp);
+                        } else {
+                            int *ptr = va_arg(args, int*);
+                            result = read_integer(ptr);
+                            if (result == 1) {
+                                assigned_count++;
+                            }
                         }
                     }
 
