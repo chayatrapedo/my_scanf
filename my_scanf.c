@@ -153,7 +153,7 @@ int read_string(char* s, int max_chars) {
     }
 
     int count = 0;
-    while (c != EOF && !isspace(c) && count < max_chars) {
+    while (c != EOF && !isspace(c) && count < max_chars - 1) {
         s[count++] = (char)c;
         c = getchar();
     }
@@ -264,15 +264,29 @@ int my_scanf(const char *format, ...) {
                 }
 
                 case 's': {
-                    // For now, ignore field width and suppress flag
-                    char *ptr = va_arg(args, char*);
-                    int result = read_string(ptr, 256);
-                    if (result == 1) {
-                        assigned_count++;
-                    } else if (result == -1) {
+                    char buffer[256];  // Temp buffer for suppressed reads
+                    int max_size = spec.field_width > 0 ? spec.field_width + 1 : 256;
+                    int result;
+
+                    if (spec.suppress) {
+                        // Read but don't store
+                        result = read_string(buffer, max_size);
+                        // Don't increment assigned_count
+                        // Don't call va_arg
+                    } else {
+                        // Normal case - get pointer from va_arg and store
+                        char *ptr = va_arg(args, char*);
+                        result = read_string(ptr, max_size);
+                        if (result == 1) {
+                            assigned_count++;
+                        }
+                    }
+
+                    // Handle EOF/failure
+                    if (result == -1) {
                         va_end(args);
                         return (assigned_count == 0) ? -1 : assigned_count;
-                    } else {
+                    } else if (result == 0) {
                         va_end(args);
                         return assigned_count;
                     }
