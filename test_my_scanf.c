@@ -224,6 +224,62 @@ int test_scanf_three_ints(const char *test_name, const char *input_file, Expecte
     return passed;
 }
 
+int test_scanf_suppress_int(const char *test_name, const char *input_file, const char *format_str) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+    printf("Format: %s\n", format_str);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    int scanf_val1 = -999, scanf_val2 = -999;
+    int scanf_ret = scanf(format_str, &scanf_val1, &scanf_val2);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, values: %d %d\n", scanf_ret, scanf_val1, scanf_val2);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    int my_scanf_val1 = -999, my_scanf_val2 = -999;
+    int my_scanf_ret = my_scanf(format_str, &my_scanf_val1, &my_scanf_val2);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, values: %d %d\n", my_scanf_ret, my_scanf_val1, my_scanf_val2);
+
+    // Check results
+    int values_match = (scanf_val1 == my_scanf_val1) && (scanf_val2 == my_scanf_val2);
+    int returns_match = (scanf_ret == my_scanf_ret);
+
+    printf("Behavior match: %s\n", (returns_match && values_match) ? "YES" : "NO");
+
+    int passed = 0;
+    if (returns_match && values_match) {
+        printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
+        passed = 1;
+        tests_passed++;
+    } else {
+        printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+    }
+
+    printf("***\n");
+    return passed;
+}
+
 int test_scanf_char(const char *test_name, const char *input_file, ExpectedBehavior expected) {
     tests_run++;
     printf("\nTEST: %s \n", test_name);
@@ -266,6 +322,62 @@ int test_scanf_char(const char *test_name, const char *input_file, ExpectedBehav
     } else {
         tests_failed++;
     }
+    printf("***\n");
+    return passed;
+}
+
+int test_scanf_suppress_char(const char *test_name, const char *input_file, const char *format_str) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+    printf("Format: %s\n", format_str);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char scanf_val = '\0';
+    int scanf_ret = scanf(format_str, &scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: '%c'\n", scanf_ret, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char my_scanf_val = '\0';
+    int my_scanf_ret = my_scanf(format_str, &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: '%c'\n", my_scanf_ret, my_scanf_val);
+
+    // Check results
+    int values_match = (scanf_val == my_scanf_val);
+    int returns_match = (scanf_ret == my_scanf_ret);
+
+    printf("Behavior match: %s\n", (returns_match && values_match) ? "YES" : "NO");
+
+    int passed = 0;
+    if (returns_match && values_match) {
+        printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
+        passed = 1;
+        tests_passed++;
+    } else {
+        printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+    }
+
     printf("***\n");
     return passed;
 }
@@ -432,6 +544,20 @@ int main() {
 
     printf("\n=== %%d %%c Tests ======================\n");
     test_scanf_int_char("Integer and character", "test_inputs/test_d_then_c.txt", EXPECT_SUCCESS);
+
+    printf("\n=== Assignment Suppression Tests =======\n");
+    // %d %*d %d with "10 20 30" - scanf determines correct behavior
+    test_scanf_suppress_int("Suppress middle int", "test_inputs/test_suppress_int.txt",
+                           "%d %*d %d");
+
+    // %*d %d with "10 20 30" - scanf determines correct behavior
+    test_scanf_suppress_int("Suppress first int", "test_inputs/test_suppress_int.txt",
+                           "%*d %d");
+
+    // %*c%c with "abc" - scanf determines correct behavior
+    test_scanf_suppress_char("Suppress first char", "test_inputs/test_suppress_char.txt",
+                            "%*c%c");
+
     // Print summary
     printf("\n========================================\n");
     printf("TEST SUMMARY\n");
@@ -439,6 +565,7 @@ int main() {
     printf("  %sPassed:       %d%s\n", COLOR_GREEN, tests_passed, COLOR_RESET);
     printf("  %sFailed:       %d%s\n", COLOR_RED, tests_failed, COLOR_RESET);
     printf("========================================\n");
+
 
     return (tests_failed == 0) ? 0 : 1;
 }
