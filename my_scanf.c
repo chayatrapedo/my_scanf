@@ -208,6 +208,50 @@ int read_long_long(long long* d) {
     return 0;
 }
 
+int read_short(short* d) {
+    // Skip leading whitespace
+    int c = getchar();
+    while (c != EOF && isspace(c)) {
+        c = getchar();
+    }
+
+    // Now c is either a non-whitespace char or EOF
+    if (c == EOF) {
+        return -1;
+    }
+
+    // Check for sign
+    int sign = 1;
+    if (c == '-') {
+        sign = -1;
+        c = getchar();
+    } else if (c == '+') {
+        c = getchar();
+    }
+
+    int value = 0;
+    int read_any_digits = 0;
+
+    while (c != EOF && isdigit(c)) {
+        int digit = c - '0';
+        value = value * 10 + digit;
+        read_any_digits = 1;
+        c = getchar();
+    }
+
+    // Put back the last character (it wasn't a digit)
+    if (c != EOF) {
+        ungetc(c, stdin);
+    }
+
+    if (read_any_digits) {
+        *d = (short)(value * sign);
+        return 1;
+    }
+
+    return 0;
+}
+
 /*
 int read_float(float* f) {
     // TO-DO
@@ -323,6 +367,17 @@ int my_scanf(const char *format, ...) {
                         } else {
                             long *ptr = va_arg(args, long*);
                             result = read_long(ptr);
+                            if (result == 1) {
+                                assigned_count++;
+                            }
+                        }
+                    } else if (strcmp(spec.length_mod, "h") == 0) {
+                        if (spec.suppress) {
+                            short temp;
+                            result = read_short(&temp);
+                        } else {
+                            short *ptr = va_arg(args, short*);
+                            result = read_short(ptr);
                             if (result == 1) {
                                 assigned_count++;
                             }
