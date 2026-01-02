@@ -164,6 +164,50 @@ int read_long(long* d) {
     return 0;
 }
 
+int read_long_long(long long* d) {
+    // Skip leading whitespace
+    int c = getchar();
+    while (c != EOF && isspace(c)) {
+        c = getchar();
+    }
+
+    // Now c is either a non-whitespace char or EOF
+    if (c == EOF) {
+        return -1;
+    }
+
+    // Check for sign
+    int sign = 1;
+    if (c == '-') {
+        sign = -1;
+        c = getchar();
+    } else if (c == '+') {
+        c = getchar();
+    }
+
+    long long value = 0;
+    int read_any_digits = 0;
+
+    while (c != EOF && isdigit(c)) {
+        int digit = c - '0';
+        value = value * 10 + digit;
+        read_any_digits = 1;
+        c = getchar();
+    }
+
+    // Put back the last character (it wasn't a digit)
+    if (c != EOF) {
+        ungetc(c, stdin);
+    }
+
+    if (read_any_digits) {
+        *d = value * sign;
+        return 1;
+    }
+
+    return 0;
+}
+
 /*
 int read_float(float* f) {
     // TO-DO
@@ -260,8 +304,19 @@ int my_scanf(const char *format, ...) {
                 case 'd': {
                     int result;
 
-                    // Check for 'l' length modifier
-                    if (strcmp(spec.length_mod, "l") == 0) {
+                    // Check for length modifiers
+                    if (strcmp(spec.length_mod, "ll") == 0) {
+                        if (spec.suppress) {
+                            long long temp;
+                            result = read_long_long(&temp);
+                        } else {
+                            long long *ptr = va_arg(args, long long*);
+                            result = read_long_long(ptr);
+                            if (result == 1) {
+                                assigned_count++;
+                            }
+                        }
+                    } else if (strcmp(spec.length_mod, "l") == 0) {
                         if (spec.suppress) {
                             long temp;
                             result = read_long(&temp);
