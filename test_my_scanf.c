@@ -821,6 +821,146 @@ int test_scanf_float(const char *test_name, const char *input_file, ExpectedBeha
     return passed;
 }
 
+int test_scanf_double(const char *test_name, const char *input_file, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    double scanf_val = -999.0;
+    int scanf_ret = scanf("%lf", &scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: %.15lf\n", scanf_ret, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    double my_scanf_val = -999.0;
+    int my_scanf_ret = my_scanf("%lf", &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: %.15lf\n", my_scanf_ret, my_scanf_val);
+
+    // Check behavior - use small epsilon for double comparison
+    double epsilon = 0.0000001;
+    double diff = scanf_val - my_scanf_val;
+    if (diff < 0) diff = -diff;
+    int values_match = (diff < epsilon);
+    int returns_match = (scanf_ret == my_scanf_ret);
+
+    printf("Expected: %s\n", expected == EXPECT_SUCCESS ? "SUCCESS" : "FAILURE");
+    printf("Behavior match: %s\n", (returns_match && values_match) ? "YES" : "NO");
+
+    int passed = 0;
+    if (expected == EXPECT_SUCCESS) {
+        if (returns_match && values_match && scanf_ret == 1) {
+            printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
+            passed = 1;
+            tests_passed++;
+        } else {
+            printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+            tests_failed++;
+        }
+    } else {
+        if (scanf_ret == 0 && my_scanf_ret == 0) {
+            printf("Result: %sPASS%s (both failed as expected)\n", COLOR_GREEN, COLOR_RESET);
+            passed = 1;
+            tests_passed++;
+        } else {
+            printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+            tests_failed++;
+        }
+    }
+
+    printf("***\n");
+    return passed;
+}
+
+int test_scanf_long_double(const char *test_name, const char *input_file, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    long double scanf_val = -999.0L;
+    int scanf_ret = scanf("%Lf", &scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: %.18Lf\n", scanf_ret, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    long double my_scanf_val = -999.0L;
+    int my_scanf_ret = my_scanf("%Lf", &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: %.18Lf\n", my_scanf_ret, my_scanf_val);
+
+    // Check behavior - use small epsilon for long double comparison
+    long double epsilon = 0.000000001L;
+    long double diff = scanf_val - my_scanf_val;
+    if (diff < 0) diff = -diff;
+    int values_match = (diff < epsilon);
+    int returns_match = (scanf_ret == my_scanf_ret);
+
+    printf("Expected: %s\n", expected == EXPECT_SUCCESS ? "SUCCESS" : "FAILURE");
+    printf("Behavior match: %s\n", (returns_match && values_match) ? "YES" : "NO");
+
+    int passed = 0;
+    if (expected == EXPECT_SUCCESS) {
+        if (returns_match && values_match && scanf_ret == 1) {
+            printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
+            passed = 1;
+            tests_passed++;
+        } else {
+            printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+            tests_failed++;
+        }
+    } else {
+        if (scanf_ret == 0 && my_scanf_ret == 0) {
+            printf("Result: %sPASS%s (both failed as expected)\n", COLOR_GREEN, COLOR_RESET);
+            passed = 1;
+            tests_passed++;
+        } else {
+            printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+            tests_failed++;
+        }
+    }
+
+    printf("***\n");
+    return passed;
+}
+
 int main() {
     printf("  MY_SCANF TEST SUITE\n");
     printf("\n=== %%d Tests ==========================\n");
@@ -900,6 +1040,12 @@ int main() {
     test_scanf_float("Float with leading space", "test_inputs/test_float_leading_space.txt", EXPECT_SUCCESS);
     test_scanf_float("Zero float", "test_inputs/test_float_zero.txt", EXPECT_SUCCESS);
     test_scanf_float("Negative zero float", "test_inputs/test_float_neg_zero.txt", EXPECT_SUCCESS);
+
+    printf("\n=== %%lf Tests =========================\n");
+    test_scanf_double("Double precision", "test_inputs/test_double.txt", EXPECT_SUCCESS);
+
+    printf("\n=== %%Lf Tests =========================\n");
+    test_scanf_long_double("Long double", "test_inputs/test_long_double.txt", EXPECT_SUCCESS);
 
     // Print summary
     printf("\n========================================\n");
