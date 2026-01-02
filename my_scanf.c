@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <string.h>
+#include <limits.h>
 
 
 // format specifier structure
@@ -256,7 +257,7 @@ int read_short(short* d) {
     return 0;
 }
 
-int read_float(float* f) {
+int read_float(float* f, int field_width) {
     // Skip leading whitespace
     int c = getchar();
     while (c != EOF && isspace(c)) {
@@ -268,12 +269,16 @@ int read_float(float* f) {
         return -1;
     }
 
+    int chars_read = 0;
+    int max_chars = (field_width > 0) ? field_width : INT_MAX;
+
     // Check for sign
     int sign = 1;
-    if (c == '-') {
-        sign = -1;
-        c = getchar();
-    } else if (c == '+') {
+    if ((c == '-' || c == '+') && chars_read < max_chars) {
+        if (c == '-') {
+            sign = -1;
+        }
+        chars_read++;
         c = getchar();
     }
 
@@ -281,24 +286,27 @@ int read_float(float* f) {
     float value = 0.0f;
     int read_any_digits = 0;
 
-    while (c != EOF && isdigit(c)) {
+    while (c != EOF && isdigit(c) && chars_read < max_chars) {
         int digit = c - '0';
-        value = value * 10.0f + digit;
+        value = value * 10.0f + (float)digit;
         read_any_digits = 1;
+        chars_read++;
         c = getchar();
     }
 
     // Check for decimal point
-    if (c == '.') {
+    if (c == '.' && chars_read < max_chars) {
+        chars_read++;
         c = getchar();
         float divisor = 10.0f;
 
         // Read fractional part
-        while (c != EOF && isdigit(c)) {
+        while (c != EOF && isdigit(c) && chars_read < max_chars) {
             int digit = c - '0';
-            value += digit / divisor;
+            value += (float) digit / divisor;
             divisor *= 10.0f;
             read_any_digits = 1;
+            chars_read++;
             c = getchar();
         }
     }
@@ -316,7 +324,7 @@ int read_float(float* f) {
     return 0;
 }
 
-int read_double(double* f) {
+int read_double(double* f, int field_width) {
     // Skip leading whitespace
     int c = getchar();
     while (c != EOF && isspace(c)) {
@@ -328,12 +336,16 @@ int read_double(double* f) {
         return -1;
     }
 
+    int chars_read = 0;
+    int max_chars = (field_width > 0) ? field_width : INT_MAX;
+
     // Check for sign
     int sign = 1;
-    if (c == '-') {
-        sign = -1;
-        c = getchar();
-    } else if (c == '+') {
+    if ((c == '-' || c == '+') && chars_read < max_chars) {
+        if (c == '-') {
+            sign = -1;
+        }
+        chars_read++;
         c = getchar();
     }
 
@@ -341,24 +353,27 @@ int read_double(double* f) {
     double value = 0.0;
     int read_any_digits = 0;
 
-    while (c != EOF && isdigit(c)) {
+    while (c != EOF && isdigit(c) && chars_read < max_chars) {
         int digit = c - '0';
-        value = value * 10.0 + digit;
+        value = value * 10.0 + (double)digit;
         read_any_digits = 1;
+        chars_read++;
         c = getchar();
     }
 
     // Check for decimal point
-    if (c == '.') {
+    if (c == '.' && chars_read < max_chars) {
+        chars_read++;
         c = getchar();
         double divisor = 10.0;
 
         // Read fractional part
-        while (c != EOF && isdigit(c)) {
+        while (c != EOF && isdigit(c) && chars_read < max_chars) {
             int digit = c - '0';
             value += digit / divisor;
             divisor *= 10.0;
             read_any_digits = 1;
+            chars_read++;
             c = getchar();
         }
     }
@@ -376,7 +391,7 @@ int read_double(double* f) {
     return 0;
 }
 
-int read_long_double(long double* f) {
+int read_long_double(long double* f, int field_width) {
     // Skip leading whitespace
     int c = getchar();
     while (c != EOF && isspace(c)) {
@@ -388,12 +403,16 @@ int read_long_double(long double* f) {
         return -1;
     }
 
+    int chars_read = 0;
+    int max_chars = (field_width > 0) ? field_width : INT_MAX;
+
     // Check for sign
     int sign = 1;
-    if (c == '-') {
-        sign = -1;
-        c = getchar();
-    } else if (c == '+') {
+    if ((c == '-' || c == '+') && chars_read < max_chars) {
+        if (c == '-') {
+            sign = -1;
+        }
+        chars_read++;
         c = getchar();
     }
 
@@ -401,24 +420,27 @@ int read_long_double(long double* f) {
     long double value = 0.0L;
     int read_any_digits = 0;
 
-    while (c != EOF && isdigit(c)) {
+    while (c != EOF && isdigit(c) && chars_read < max_chars) {
         int digit = c - '0';
-        value = value * 10.0L + digit;
+        value = value * 10.0L + (long double)digit;
         read_any_digits = 1;
+        chars_read++;
         c = getchar();
     }
 
     // Check for decimal point
-    if (c == '.') {
+    if (c == '.' && chars_read < max_chars) {
+        chars_read++;
         c = getchar();
         long double divisor = 10.0L;
 
         // Read fractional part
-        while (c != EOF && isdigit(c)) {
+        while (c != EOF && isdigit(c) && chars_read < max_chars) {
             int digit = c - '0';
-            value += digit / divisor;
+            value += (long double)digit / divisor;
             divisor *= 10.0L;
             read_any_digits = 1;
+            chars_read++;
             c = getchar();
         }
     }
@@ -647,10 +669,10 @@ int my_scanf(const char *format, ...) {
                     if (strcmp(spec.length_mod, "L") == 0) {
                         if (spec.suppress) {
                             long double temp;
-                            result = read_long_double(&temp);
+                            result = read_long_double(&temp, spec.field_width);
                         } else {
                             long double *ptr = va_arg(args, long double*);
-                            result = read_long_double(ptr);
+                            result = read_long_double(ptr, spec.field_width);
                             if (result == 1) {
                                 assigned_count++;
                             }
@@ -658,10 +680,10 @@ int my_scanf(const char *format, ...) {
                     } else if (strcmp(spec.length_mod, "l") == 0) {
                         if (spec.suppress) {
                             double temp;
-                            result = read_double(&temp);
+                            result = read_double(&temp, spec.field_width);
                         } else {
                             double *ptr = va_arg(args, double*);
-                            result = read_double(ptr);
+                            result = read_double(ptr, spec.field_width);
                             if (result == 1) {
                                 assigned_count++;
                             }
@@ -670,10 +692,10 @@ int my_scanf(const char *format, ...) {
                         // Default: regular float
                         if (spec.suppress) {
                             float temp;
-                            result = read_float(&temp);
+                            result = read_float(&temp, spec.field_width);
                         } else {
                             float *ptr = va_arg(args, float*);
-                            result = read_float(ptr);
+                            result = read_float(ptr, spec.field_width);
                             if (result == 1) {
                                 assigned_count++;
                             }
@@ -723,8 +745,8 @@ int my_scanf(const char *format, ...) {
 /*
 int main() {
     // testing bad pointer assignment to scanf()
-    float res;
-    my_scanf("%f", &res);
-    printf("%f",res);
+    int res;
+    scanf("%3d", &res);
+    printf("%d",res);
 }
 */
