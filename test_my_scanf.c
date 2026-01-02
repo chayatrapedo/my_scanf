@@ -59,6 +59,7 @@ int check_behavior_match(int scanf_ret, int my_scanf_ret, int scanf_val, int my_
     }
 }
 
+// Tests
 int test_scanf_int(const char *test_name, const char *input_file, ExpectedBehavior expected) {
     tests_run++;
     printf("\nTEST: %s \n", test_name);
@@ -279,7 +280,7 @@ int test_scanf_suppress_int(const char *test_name, const char *input_file, const
     return passed;
 }
 
-int test_scanf_long(const char *test_name, const char *input_file) {
+int test_scanf_long(const char *test_name, const char *input_file, ExpectedBehavior expected) {
     tests_run++;
     printf("\nTEST: %s \n", test_name);
     printf("Input file: %s\n", input_file);
@@ -314,25 +315,64 @@ int test_scanf_long(const char *test_name, const char *input_file) {
 
     printf("\tmy_scanf() returned: %d, value: %ld\n", my_scanf_ret, my_scanf_val);
 
-    // Check results
-    int values_match = (scanf_val == my_scanf_val);
-    int returns_match = (scanf_ret == my_scanf_ret);
-
-    printf("Behavior match: %s\n", (returns_match && values_match) ? "YES" : "NO");
-
-    int passed = 0;
-    if (returns_match && values_match && scanf_ret == 1) {
-        printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
-        passed = 1;
+    // Check behavior
+    int passed = check_behavior_match(scanf_ret, my_scanf_ret, scanf_val, my_scanf_val, expected);
+    if (passed) {
         tests_passed++;
     } else {
-        printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
         tests_failed++;
     }
-
     printf("***\n");
     return passed;
 }
+
+int test_scanf_long_long(const char *test_name, const char *input_file, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    long long scanf_val = -999;
+    int scanf_ret = scanf("%lld", &scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: %lld\n", scanf_ret, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    long long my_scanf_val = -999;
+    int my_scanf_ret = my_scanf("%lld", &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: %lld\n", my_scanf_ret, my_scanf_val);
+
+    // Check behavior
+    int passed = check_behavior_match(scanf_ret, my_scanf_ret, scanf_val, my_scanf_val, expected);
+    if (passed) {
+        tests_passed++;
+    } else {
+        tests_failed++;
+    }
+    printf("***\n");
+    return passed;
+}
+
+
 
 int test_scanf_char(const char *test_name, const char *input_file, ExpectedBehavior expected) {
     tests_run++;
@@ -555,8 +595,7 @@ int test_scanf_string(const char *test_name, const char *input_file, ExpectedBeh
     return passed;
 }
 
-int test_scanf_string_with_format(const char *test_name, const char *input_file,
-                                   const char *format_str) {
+int test_scanf_string_with_format(const char *test_name, const char *input_file, const char *format_str) {
     tests_run++;
     printf("\nTEST: %s \n", test_name);
     printf("Input file: %s\n", input_file);
@@ -700,9 +739,14 @@ int main() {
     test_scanf_three_ints("Three integers", "test_inputs/test_three_ints.txt", EXPECT_SUCCESS);
 
     printf("\n=== %%ld Tests =========================\n");
-    test_scanf_long("Long integer", "test_inputs/test_long.txt");
-    test_scanf_long("Negative long", "test_inputs/test_long_neg.txt");
-    test_scanf_long("LONG_MAX", "test_inputs/test_long_max.txt");
+    test_scanf_long("Long integer", "test_inputs/test_long.txt", EXPECT_SUCCESS);
+    test_scanf_long("Negative long", "test_inputs/test_long_neg.txt", EXPECT_SUCCESS);
+    test_scanf_long("LONG_MAX", "test_inputs/test_long_max.txt", EXPECT_SUCCESS);
+
+    printf("\n=== %%lld Tests ========================\n");
+    test_scanf_long_long("Long long max", "test_inputs/test_llong.txt", EXPECT_SUCCESS);
+    test_scanf_long_long("Long long min", "test_inputs/test_llong_neg.txt", EXPECT_SUCCESS);
+    test_scanf_long_long("Large long long", "test_inputs/test_llong_large.txt", EXPECT_SUCCESS);
 
     printf("\n=== %%c Tests ==========================\n");
     test_scanf_char("One character", "test_inputs/test_char_a.txt", EXPECT_SUCCESS);
