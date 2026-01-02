@@ -751,6 +751,76 @@ int test_scanf_string_suppress(const char *test_name, const char *input_file, co
     return passed;
 }
 
+int test_scanf_float(const char *test_name, const char *input_file, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    float scanf_val = -999.0f;
+    int scanf_ret = scanf("%f", &scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: %f\n", scanf_ret, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    float my_scanf_val = -999.0f;
+    int my_scanf_ret = my_scanf("%f", &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: %f\n", my_scanf_ret, my_scanf_val);
+
+    // Check behavior - use small epsilon for float comparison
+    float epsilon = 0.0001f;
+    float diff = scanf_val - my_scanf_val;
+    if (diff < 0) diff = -diff;
+    int values_match = (diff < epsilon);
+    int returns_match = (scanf_ret == my_scanf_ret);
+
+    printf("Expected: %s\n", expected == EXPECT_SUCCESS ? "SUCCESS" : "FAILURE");
+    printf("Behavior match: %s\n", (returns_match && values_match) ? "YES" : "NO");
+
+    int passed = 0;
+    if (expected == EXPECT_SUCCESS) {
+        if (returns_match && values_match && scanf_ret == 1) {
+            printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
+            passed = 1;
+            tests_passed++;
+        } else {
+            printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+            tests_failed++;
+        }
+    } else {
+        if (scanf_ret == 0 && my_scanf_ret == 0) {
+            printf("Result: %sPASS%s (both failed as expected)\n", COLOR_GREEN, COLOR_RESET);
+            passed = 1;
+            tests_passed++;
+        } else {
+            printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+            tests_failed++;
+        }
+    }
+
+    printf("***\n");
+    return passed;
+}
+
 int main() {
     printf("  MY_SCANF TEST SUITE\n");
     printf("\n=== %%d Tests ==========================\n");
@@ -822,6 +892,14 @@ int main() {
     test_scanf_string_with_format("String field width 10", "test_inputs/test_string_field_width.txt", "%10s");
     test_scanf_string_with_format("String field width with spaces", "test_inputs/test_string_field_width_space.txt", "%5s");
     test_scanf_string_suppress("Suppress string", "test_inputs/test_string_suppress.txt","%*s %s");
+
+    printf("\n=== %%f Tests ==========================\n");
+    test_scanf_float("Positive float", "test_inputs/test_float.txt", EXPECT_SUCCESS);
+    test_scanf_float("Negative float", "test_inputs/test_float_neg.txt", EXPECT_SUCCESS);
+    test_scanf_float("Integer as float", "test_inputs/test_float_no_decimal.txt", EXPECT_SUCCESS);
+    test_scanf_float("Float with leading space", "test_inputs/test_float_leading_space.txt", EXPECT_SUCCESS);
+    test_scanf_float("Zero float", "test_inputs/test_float_zero.txt", EXPECT_SUCCESS);
+    test_scanf_float("Negative zero float", "test_inputs/test_float_neg_zero.txt", EXPECT_SUCCESS);
 
     // Print summary
     printf("\n========================================\n");

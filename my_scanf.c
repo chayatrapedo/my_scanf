@@ -252,13 +252,67 @@ int read_short(short* d) {
     return 0;
 }
 
-/*
 int read_float(float* f) {
-    // TO-DO
-    // %f - not yet defined
+    // Skip leading whitespace
+    int c = getchar();
+    while (c != EOF && isspace(c)) {
+        c = getchar();
+    }
+
+    // Check for EOF
+    if (c == EOF) {
+        return -1;
+    }
+
+    // Check for sign
+    int sign = 1;
+    if (c == '-') {
+        sign = -1;
+        c = getchar();
+    } else if (c == '+') {
+        c = getchar();
+    }
+
+    // Read integer part
+    float value = 0.0f;
+    int read_any_digits = 0;
+
+    while (c != EOF && isdigit(c)) {
+        int digit = c - '0';
+        value = value * 10.0f + digit;
+        read_any_digits = 1;
+        c = getchar();
+    }
+
+    // Check for decimal point
+    if (c == '.') {
+        c = getchar();
+        float divisor = 10.0f;
+
+        // Read fractional part
+        while (c != EOF && isdigit(c)) {
+            int digit = c - '0';
+            value += digit / divisor;
+            divisor *= 10.0f;
+            read_any_digits = 1;
+            c = getchar();
+        }
+    }
+
+    // Put back the last character
+    if (c != EOF) {
+        ungetc(c, stdin);
+    }
+
+    if (read_any_digits) {
+        *f = value * sign;
+        return 1;
+    }
+
     return 0;
 }
 
+/*
 int read_hex_integer(int* x) {
     // TO-DO
     // %x - not yet defined
@@ -462,6 +516,33 @@ int my_scanf(const char *format, ...) {
                     break;
                 }
 
+                case 'f': {
+                    int result;
+
+                    if (spec.suppress) {
+                        // Read but don't store
+                        float temp;
+                        result = read_float(&temp);
+                    } else {
+                        // Normal case - get pointer from va_arg and store
+                        float *ptr = va_arg(args, float*);
+                        result = read_float(ptr);
+                        if (result == 1) {
+                            assigned_count++;
+                        }
+                    }
+
+                    // Handle EOF/failure
+                    if (result == -1) {
+                        va_end(args);
+                        return (assigned_count == 0) ? -1 : assigned_count;
+                    } else if (result == 0) {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    break;
+                }
+
                 default:
                     // Unknown specifier - skip it
                     break;
@@ -490,11 +571,12 @@ int my_scanf(const char *format, ...) {
     va_end(args);
     return assigned_count;
 }
+
 /*
 int main() {
     // testing bad pointer assignment to scanf()
-    char res[30];
-    my_scanf("%s", &res);
-    printf("%s",res);
+    float res;
+    my_scanf("%f", &res);
+    printf("%f",res);
 }
 */
