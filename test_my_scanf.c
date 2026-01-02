@@ -372,7 +372,51 @@ int test_scanf_long_long(const char *test_name, const char *input_file, Expected
     return passed;
 }
 
+int test_scanf_short(const char *test_name, const char *input_file, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
 
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    short scanf_val = -999;
+    int scanf_ret = scanf("%hd", &scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: %hd\n", scanf_ret, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    short my_scanf_val = -999;
+    int my_scanf_ret = my_scanf("%hd", &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: %hd\n", my_scanf_ret, my_scanf_val);
+
+    // Check behavior
+    int passed = check_behavior_match(scanf_ret, my_scanf_ret, scanf_val, my_scanf_val, expected);
+    if (passed) {
+        tests_passed++;
+    } else {
+        tests_failed++;
+    }
+    printf("***\n");
+    return passed;
+}
 
 int test_scanf_char(const char *test_name, const char *input_file, ExpectedBehavior expected) {
     tests_run++;
@@ -748,6 +792,11 @@ int main() {
     test_scanf_long_long("Long long min", "test_inputs/test_llong_neg.txt", EXPECT_SUCCESS);
     test_scanf_long_long("Large long long", "test_inputs/test_llong_large.txt", EXPECT_SUCCESS);
 
+    printf("\n=== %%hd Tests =========================\n");
+    test_scanf_short("Short max", "test_inputs/test_short.txt", EXPECT_SUCCESS);
+    test_scanf_short("Short min", "test_inputs/test_short_neg.txt", EXPECT_SUCCESS);
+    test_scanf_short("Small short", "test_inputs/test_short_small.txt", EXPECT_SUCCESS);
+
     printf("\n=== %%c Tests ==========================\n");
     test_scanf_char("One character", "test_inputs/test_char_a.txt", EXPECT_SUCCESS);
     test_scanf_char("Space", "test_inputs/test_char_space.txt", EXPECT_SUCCESS);
@@ -763,21 +812,15 @@ int main() {
     printf("\n=== Assignment Suppression Tests =======\n");
     // %d %*d %d with "10 20 30" - scanf determines correct behavior
     test_scanf_suppress_int("Suppress middle int", "test_inputs/test_suppress_int.txt","%d %*d %d");
-
     // %*d %d with "10 20 30" - scanf determines correct behavior
     test_scanf_suppress_int("Suppress first int", "test_inputs/test_suppress_int.txt","%*d %d");
-
     // %*c%c with "abc" - scanf determines correct behavior
-    test_scanf_suppress_char("Suppress first char", "test_inputs/test_suppress_char.txt",
-                            "%*c%c");
+    test_scanf_suppress_char("Suppress first char", "test_inputs/test_suppress_char.txt", "%*c%c");
 
     printf("\n=== %%s Field Width Tests ==============\n");
     test_scanf_string_with_format("String field width 5", "test_inputs/test_string_field_width.txt","%5s");
-
     test_scanf_string_with_format("String field width 10", "test_inputs/test_string_field_width.txt", "%10s");
-
     test_scanf_string_with_format("String field width with spaces", "test_inputs/test_string_field_width_space.txt", "%5s");
-
     test_scanf_string_suppress("Suppress string", "test_inputs/test_string_suppress.txt","%*s %s");
 
     // Print summary
