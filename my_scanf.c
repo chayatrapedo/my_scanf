@@ -39,9 +39,13 @@ static int parse_format_specifier(const char *format, FormatSpecifier *spec) {
         pos++;
     }
 
-    // Parse length modifier (h, l, ll)
+    // Parse length modifier (h, l, ll, L)
     if (format[pos] == 'h') {
         spec->length_mod[0] = 'h';
+        spec->length_mod[1] = '\0';
+        pos++;
+    } else if (format[pos] == 'L') {  // Add this for long double
+        spec->length_mod[0] = 'L';
         spec->length_mod[1] = '\0';
         pos++;
     } else if (format[pos] == 'l') {
@@ -312,6 +316,126 @@ int read_float(float* f) {
     return 0;
 }
 
+int read_double(double* f) {
+    // Skip leading whitespace
+    int c = getchar();
+    while (c != EOF && isspace(c)) {
+        c = getchar();
+    }
+
+    // Check for EOF
+    if (c == EOF) {
+        return -1;
+    }
+
+    // Check for sign
+    int sign = 1;
+    if (c == '-') {
+        sign = -1;
+        c = getchar();
+    } else if (c == '+') {
+        c = getchar();
+    }
+
+    // Read integer part
+    double value = 0.0;
+    int read_any_digits = 0;
+
+    while (c != EOF && isdigit(c)) {
+        int digit = c - '0';
+        value = value * 10.0 + digit;
+        read_any_digits = 1;
+        c = getchar();
+    }
+
+    // Check for decimal point
+    if (c == '.') {
+        c = getchar();
+        double divisor = 10.0;
+
+        // Read fractional part
+        while (c != EOF && isdigit(c)) {
+            int digit = c - '0';
+            value += digit / divisor;
+            divisor *= 10.0;
+            read_any_digits = 1;
+            c = getchar();
+        }
+    }
+
+    // Put back the last character
+    if (c != EOF) {
+        ungetc(c, stdin);
+    }
+
+    if (read_any_digits) {
+        *f = value * sign;
+        return 1;
+    }
+
+    return 0;
+}
+
+int read_long_double(long double* f) {
+    // Skip leading whitespace
+    int c = getchar();
+    while (c != EOF && isspace(c)) {
+        c = getchar();
+    }
+
+    // Check for EOF
+    if (c == EOF) {
+        return -1;
+    }
+
+    // Check for sign
+    int sign = 1;
+    if (c == '-') {
+        sign = -1;
+        c = getchar();
+    } else if (c == '+') {
+        c = getchar();
+    }
+
+    // Read integer part
+    long double value = 0.0L;
+    int read_any_digits = 0;
+
+    while (c != EOF && isdigit(c)) {
+        int digit = c - '0';
+        value = value * 10.0L + digit;
+        read_any_digits = 1;
+        c = getchar();
+    }
+
+    // Check for decimal point
+    if (c == '.') {
+        c = getchar();
+        long double divisor = 10.0L;
+
+        // Read fractional part
+        while (c != EOF && isdigit(c)) {
+            int digit = c - '0';
+            value += digit / divisor;
+            divisor *= 10.0L;
+            read_any_digits = 1;
+            c = getchar();
+        }
+    }
+
+    // Put back the last character
+    if (c != EOF) {
+        ungetc(c, stdin);
+    }
+
+    if (read_any_digits) {
+        *f = value * sign;
+        return 1;
+    }
+
+    return 0;
+}
+
 /*
 int read_hex_integer(int* x) {
     // TO-DO
@@ -519,16 +643,40 @@ int my_scanf(const char *format, ...) {
                 case 'f': {
                     int result;
 
-                    if (spec.suppress) {
-                        // Read but don't store
-                        float temp;
-                        result = read_float(&temp);
+                    // Check for length modifiers
+                    if (strcmp(spec.length_mod, "L") == 0) {
+                        if (spec.suppress) {
+                            long double temp;
+                            result = read_long_double(&temp);
+                        } else {
+                            long double *ptr = va_arg(args, long double*);
+                            result = read_long_double(ptr);
+                            if (result == 1) {
+                                assigned_count++;
+                            }
+                        }
+                    } else if (strcmp(spec.length_mod, "l") == 0) {
+                        if (spec.suppress) {
+                            double temp;
+                            result = read_double(&temp);
+                        } else {
+                            double *ptr = va_arg(args, double*);
+                            result = read_double(ptr);
+                            if (result == 1) {
+                                assigned_count++;
+                            }
+                        }
                     } else {
-                        // Normal case - get pointer from va_arg and store
-                        float *ptr = va_arg(args, float*);
-                        result = read_float(ptr);
-                        if (result == 1) {
-                            assigned_count++;
+                        // Default: regular float
+                        if (spec.suppress) {
+                            float temp;
+                            result = read_float(&temp);
+                        } else {
+                            float *ptr = va_arg(args, float*);
+                            result = read_float(ptr);
+                            if (result == 1) {
+                                assigned_count++;
+                            }
                         }
                     }
 
