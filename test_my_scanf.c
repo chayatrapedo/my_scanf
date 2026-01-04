@@ -579,6 +579,88 @@ int test_scanf_int_char(const char *test_name, const char *input_file, ExpectedB
     return passed;
 }
 
+int test_scanf_char_multi(const char *test_name, const char *input_file, const char *format_str, int num_chars, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+    printf("Format: %s\n", format_str);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char scanf_val[256] = {0};
+    int scanf_ret = scanf(format_str, scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: '", scanf_ret);
+    for (int i = 0; i < num_chars && scanf_ret > 0; i++) {
+        printf("%c", scanf_val[i]);
+    }
+    printf("'\n");
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char my_scanf_val[256] = {0};
+    int my_scanf_ret = my_scanf(format_str, my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: '", my_scanf_ret);
+    for (int i = 0; i < num_chars && my_scanf_ret > 0; i++) {
+        printf("%c", my_scanf_val[i]);
+    }
+    printf("'\n");
+
+    // Check results
+    int values_match = 1;
+    for (int i = 0; i < num_chars; i++) {
+        if (scanf_val[i] != my_scanf_val[i]) {
+            values_match = 0;
+            break;
+        }
+    }
+    int returns_match = (scanf_ret == my_scanf_ret);
+
+    printf("Expected: %s\n", expected == EXPECT_SUCCESS ? "SUCCESS" : "FAILURE");
+    printf("Behavior match: %s\n", (returns_match && values_match) ? "YES" : "NO");
+
+    int passed = 0;
+    if (expected == EXPECT_SUCCESS) {
+        if (returns_match && values_match && scanf_ret == 1) {
+            printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
+            passed = 1;
+            tests_passed++;
+        } else {
+            printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+            tests_failed++;
+        }
+    } else {
+        if (scanf_ret == 0 && my_scanf_ret == 0) {
+            printf("Result: %sPASS%s (both failed as expected)\n", COLOR_GREEN, COLOR_RESET);
+            passed = 1;
+            tests_passed++;
+        } else {
+            printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+            tests_failed++;
+        }
+    }
+
+    printf("***\n");
+    return passed;
+}
+
 int test_scanf_string(const char *test_name, const char *input_file, ExpectedBehavior expected) {
     tests_run++;
     printf("\nTEST: %s \n", test_name);
@@ -1032,6 +1114,53 @@ int test_scanf_long_double(const char *test_name, const char *input_file, Expect
     return passed;
 }
 
+int test_scanf_int_with_format(const char *test_name, const char *input_file, const char *format_str, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+    printf("Format: %s\n", format_str);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    int scanf_val = -999;
+    int scanf_ret = scanf(format_str, &scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: %d\n", scanf_ret, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    int my_scanf_val = -999;
+    int my_scanf_ret = my_scanf(format_str, &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: %d\n", my_scanf_ret, my_scanf_val);
+
+    // Check behavior
+    int passed = check_behavior_match(scanf_ret, my_scanf_ret, scanf_val, my_scanf_val, expected);
+    if (passed) {
+        tests_passed++;
+    } else {
+        tests_failed++;
+    }
+    printf("***\n");
+    return passed;
+}
+
 int test_scanf_hex(const char *test_name, const char *input_file, ExpectedBehavior expected) {
     tests_run++;
     printf("\nTEST: %s \n", test_name);
@@ -1062,6 +1191,53 @@ int test_scanf_hex(const char *test_name, const char *input_file, ExpectedBehavi
 
     int my_scanf_val = -999;
     int my_scanf_ret = my_scanf("%x", &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: %x (%d)\n", my_scanf_ret, my_scanf_val, my_scanf_val);
+
+    // Check behavior
+    int passed = check_behavior_match(scanf_ret, my_scanf_ret, scanf_val, my_scanf_val, expected);
+    if (passed) {
+        tests_passed++;
+    } else {
+        tests_failed++;
+    }
+    printf("***\n");
+    return passed;
+}
+
+int test_scanf_hex_with_format(const char *test_name, const char *input_file, const char *format_str, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+    printf("Format: %s\n", format_str);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    int scanf_val = -999;
+    int scanf_ret = scanf(format_str, &scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: %x (%d)\n", scanf_ret, scanf_val, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    int my_scanf_val = -999;
+    int my_scanf_ret = my_scanf(format_str, &my_scanf_val);
 
     freopen("/dev/tty", "r", stdin);
 
@@ -1124,10 +1300,19 @@ int main() {
     test_scanf_short("Short min", "test_inputs/test_short_neg.txt", EXPECT_SUCCESS);
     test_scanf_short("Small short", "test_inputs/test_short_small.txt", EXPECT_SUCCESS);
 
+    printf("\n=== %%d Field Width Tests ==============\n");
+    test_scanf_int_with_format("Int field width 3", "test_inputs/test_int_width3.txt", "%3d", EXPECT_SUCCESS);
+    test_scanf_int_with_format("Int field width 5 with sign", "test_inputs/test_int_width5.txt", "%5d", EXPECT_SUCCESS);
+
     printf("\n=== %%c Tests ==========================\n");
     test_scanf_char("One character", "test_inputs/test_char_a.txt", EXPECT_SUCCESS);
     test_scanf_char("Space", "test_inputs/test_char_space.txt", EXPECT_SUCCESS);
     test_scanf_char("Digit", "test_inputs/test_char_digit.txt", EXPECT_SUCCESS);
+
+    printf("\n=== %%c Field Width Tests ==============\n");
+    test_scanf_char_multi("Read 3 chars", "test_inputs/test_char_multi.txt", "%3c", 3, EXPECT_SUCCESS);
+    test_scanf_char_multi("Read 5 chars", "test_inputs/test_char_multi.txt", "%5c", 5, EXPECT_SUCCESS);
+    test_scanf_char_multi("Read 3 chars with spaces", "test_inputs/test_char_with_space.txt", "%3c", 3, EXPECT_SUCCESS);
 
     printf("\n=== %%s Tests ==========================\n");
     test_scanf_string("Simple string", "test_inputs/test_string.txt", EXPECT_SUCCESS);
@@ -1172,6 +1357,10 @@ int main() {
     test_scanf_hex("Hex uppercase", "test_inputs/test_hex_upper.txt", EXPECT_SUCCESS);
     test_scanf_hex("Hex zero", "test_inputs/test_hex_zero.txt", EXPECT_SUCCESS);
     test_scanf_hex("Hex with leading space", "test_inputs/test_hex_leading_space.txt", EXPECT_SUCCESS);
+
+    printf("\n=== %%x Field Width Tests ==============\n");
+    test_scanf_hex_with_format("Hex field width 3", "test_inputs/test_hex_width3.txt", "%3x", EXPECT_SUCCESS);
+    test_scanf_hex_with_format("Hex field width 4 with prefix", "test_inputs/test_hex_width4.txt", "%4x", EXPECT_SUCCESS);
 
     // Print summary
     printf("\n========================================\n");
