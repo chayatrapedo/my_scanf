@@ -591,15 +591,75 @@ int read_string(char* s, int max_chars) {
     return (count > 0) ? 1 : 0;
 }
 
-/*
 // 3 custom modifiers
-// reads an unsigned binary integer
-int read_unsigned_binary_int(int* b) {
-    // TO-DO
-    // %b - not yet defined
+// reads a  binary integer
+int read_binary_integer(int* b, int field_width) {
+    // Skip leading whitespace
+    int c = getchar();
+    while (c != EOF && isspace(c)) {
+        c = getchar();
+    }
+
+    // Check for EOF
+    if (c == EOF) {
+        return -1;
+    }
+
+    int chars_read = 0;
+    int max_chars = (field_width > 0) ? field_width : INT_MAX;
+
+    // Check for sign
+    int sign = 1;
+    if ((c == '-' || c == '+') && chars_read < max_chars) {
+        if (c == '-') {
+            sign = -1;
+        }
+        chars_read++;
+        c = getchar();
+    }
+
+    // Check for optional 0b or 0B prefix
+    if (c == '0' && chars_read < max_chars) {
+        chars_read++;
+        int next = getchar();
+        if ((next == 'b' || next == 'B') && chars_read < max_chars) {
+            chars_read++;
+            c = getchar();  // Move past the 'b' or 'B'
+        } else {
+            // Put back the character after '0'
+            if (next != EOF) {
+                ungetc(next, stdin);
+            }
+            // '0' is a valid binary digit, so continue
+        }
+    }
+
+    int value = 0;
+    int read_any_digits = 0;
+
+    while (c != EOF && (c == '0' || c == '1') && chars_read < max_chars) {
+        int digit = c - '0';
+        value = value * 2 + digit;
+        read_any_digits = 1;
+        chars_read++;
+        c = getchar();
+    }
+
+    // Put back the last character
+    if (c != EOF) {
+        ungetc(c, stdin);
+    }
+
+    if (read_any_digits) {
+        *b = value * sign;  // Apply sign to the magnitude
+        return 1;
+    }
+
     return 0;
 }
 
+
+/*
 int read_cipher(char* q, int offset) {
     // TO-DO
     // %d - not yet defined
@@ -814,6 +874,33 @@ int my_scanf(const char *format, ...) {
                         // Normal case - get pointer from va_arg and store
                         int *ptr = va_arg(args, int*);
                         result = read_hex_integer(ptr, spec.field_width);
+                        if (result == 1) {
+                            assigned_count++;
+                        }
+                    }
+
+                    // Handle EOF/failure
+                    if (result == -1) {
+                        va_end(args);
+                        return (assigned_count == 0) ? -1 : assigned_count;
+                    } else if (result == 0) {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    break;
+                }
+
+                case 'b': {
+                    int result;
+
+                    if (spec.suppress) {
+                        // Read but don't store
+                        int temp;
+                        result = read_binary_integer(&temp, spec.field_width);
+                    } else {
+                        // Normal case - get pointer from va_arg and store
+                        int *ptr = va_arg(args, int*);
+                        result = read_binary_integer(ptr, spec.field_width);
                         if (result == 1) {
                             assigned_count++;
                         }

@@ -59,6 +59,58 @@ int check_behavior_match(int scanf_ret, int my_scanf_ret, int scanf_val, int my_
     }
 }
 
+// Helper: manually convert binary string to integer for custom %b extension
+int manual_binary_to_int(const char *binary_str) {
+    int value = 0;
+    int sign = 1;
+    int i = 0;
+
+    // Check for sign
+    if (binary_str[i] == '-') {
+        sign = -1;
+        i++;
+    } else if (binary_str[i] == '+') {
+        i++;
+    }
+
+    // Skip optional 0b or 0B prefix
+    if (binary_str[i] == '0' && (binary_str[i+1] == 'b' || binary_str[i+1] == 'B')) {
+        i += 2;
+    }
+
+    // Convert binary digits
+    while (binary_str[i] != '\0') {
+        if (binary_str[i] == '0' || binary_str[i] == '1') {
+            value = value * 2 + (binary_str[i] - '0');
+            i++;
+        } else {
+            // Invalid character, stop
+            break;
+        }
+    }
+
+    return value * sign;
+}
+
+// Helper: convert binary string to int using Python for custom %b extension
+int python_binary_to_int(const char *binary_str, int *result) {
+    char command[256];
+    snprintf(command, sizeof(command), "python3 -c \"print(int('%s', 2))\" 2>/dev/null", binary_str);
+
+    FILE *fp = popen(command, "r");
+    if (!fp) {
+        return 0;  // Failed to run Python
+    }
+
+    if (fscanf(fp, "%d", result) != 1) {
+        pclose(fp);
+        return 0;  // Failed to read result
+    }
+
+    pclose(fp);
+    return 1;  // Success
+}
+
 // Tests
 int test_scanf_int(const char *test_name, const char *input_file, ExpectedBehavior expected) {
     tests_run++;
@@ -1254,6 +1306,85 @@ int test_scanf_hex_with_format(const char *test_name, const char *input_file, co
     return passed;
 }
 
+int test_my_scanf_binary(const char *test_name, const char *input_file) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+
+    // First pass: Test my_scanf with %b
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    int my_scanf_val = -999;
+    int my_scanf_ret = my_scanf("%b", &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf(%%b) returned: %d, value: %d\n", my_scanf_ret, my_scanf_val);
+
+    // Second pass: Read as string
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char binary_str[100] = {0};
+    int scanf_ret = scanf("%s", binary_str);
+
+    freopen("/dev/tty", "r", stdin);
+
+    if (scanf_ret != 1) {
+        printf("%sFAIL: Could not read binary string\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    // Manual conversion
+    int manual_value = manual_binary_to_int(binary_str);
+    printf("\tManual conversion of '%s': %d\n", binary_str, manual_value);
+
+    // Python conversion (optional - falls back to manual if Python unavailable)
+    int python_value;
+    int has_python = python_binary_to_int(binary_str, &python_value);
+    if (has_python) {
+        printf("\tPython conversion of '%s': %d\n", binary_str, python_value);
+    } else {
+        printf("\t(Python not available, using manual only)\n");
+    }
+
+    // Compare results
+    int passed = 0;
+    int all_match = (my_scanf_val == manual_value);
+
+    if (has_python) {
+        all_match = all_match && (my_scanf_val == python_value) && (manual_value == python_value);
+    }
+
+    if (my_scanf_ret == 1 && all_match) {
+        printf("Result: %sPASS%s (all methods agree: %d)\n",
+               COLOR_GREEN, COLOR_RESET, my_scanf_val);
+        passed = 1;
+        tests_passed++;
+    } else {
+        printf("Result: %sFAIL%s (my_scanf: %d, manual: %d",
+               COLOR_RED, COLOR_RESET, my_scanf_val, manual_value);
+        if (has_python) {
+            printf(", python: %d", python_value);
+        }
+        printf(")\n");
+        tests_failed++;
+    }
+
+    printf("***\n");
+    return passed;
+}
+
 int main() {
     printf("  MY_SCANF TEST SUITE\n");
     printf("\n=== %%d Tests ==========================\n");
@@ -1361,6 +1492,15 @@ int main() {
     printf("\n=== %%x Field Width Tests ==============\n");
     test_scanf_hex_with_format("Hex field width 3", "test_inputs/test_hex_width3.txt", "%3x", EXPECT_SUCCESS);
     test_scanf_hex_with_format("Hex field width 4 with prefix", "test_inputs/test_hex_width4.txt", "%4x", EXPECT_SUCCESS);
+
+    printf("\n=== %%b Tests (Custom: Binary) =========\n");
+    test_my_scanf_binary("Binary 1010", "test_inputs/test_binary_simple.txt");
+    test_my_scanf_binary("Binary with 0b prefix", "test_inputs/test_binary_with_prefix.txt");
+    test_my_scanf_binary("Binary zero", "test_inputs/test_binary_zero.txt");
+    test_my_scanf_binary("Binary one", "test_inputs/test_binary_one.txt");
+    test_my_scanf_binary("Binary negative", "test_inputs/test_binary_negative.txt");
+    test_my_scanf_binary("Binary 8 bits", "test_inputs/test_binary_eight_bits.txt");
+    test_my_scanf_binary("Binary 32 bits", "test_inputs/test_binary_large.txt");
 
     // Print summary
     printf("\n========================================\n");
