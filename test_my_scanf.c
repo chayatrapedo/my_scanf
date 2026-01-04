@@ -1032,6 +1032,52 @@ int test_scanf_long_double(const char *test_name, const char *input_file, Expect
     return passed;
 }
 
+int test_scanf_hex(const char *test_name, const char *input_file, ExpectedBehavior expected) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+
+    // Test scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    int scanf_val = -999;
+    int scanf_ret = scanf("%x", &scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, value: %x (%d)\n", scanf_ret, scanf_val, scanf_val);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    int my_scanf_val = -999;
+    int my_scanf_ret = my_scanf("%x", &my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, value: %x (%d)\n", my_scanf_ret, my_scanf_val, my_scanf_val);
+
+    // Check behavior
+    int passed = check_behavior_match(scanf_ret, my_scanf_ret, scanf_val, my_scanf_val, expected);
+    if (passed) {
+        tests_passed++;
+    } else {
+        tests_failed++;
+    }
+    printf("***\n");
+    return passed;
+}
+
 int main() {
     printf("  MY_SCANF TEST SUITE\n");
     printf("\n=== %%d Tests ==========================\n");
@@ -1119,6 +1165,13 @@ int main() {
 
     printf("\n=== %%Lf Tests =========================\n");
     test_scanf_long_double("Long double", "test_inputs/test_long_double.txt", EXPECT_SUCCESS);
+
+    printf("\n=== %%x Tests ==========================\n");
+    test_scanf_hex("Hex lowercase", "test_inputs/test_hex.txt", EXPECT_SUCCESS);
+    test_scanf_hex("Hex with 0x prefix", "test_inputs/test_hex_prefix.txt", EXPECT_SUCCESS);
+    test_scanf_hex("Hex uppercase", "test_inputs/test_hex_upper.txt", EXPECT_SUCCESS);
+    test_scanf_hex("Hex zero", "test_inputs/test_hex_zero.txt", EXPECT_SUCCESS);
+    test_scanf_hex("Hex with leading space", "test_inputs/test_hex_leading_space.txt", EXPECT_SUCCESS);
 
     // Print summary
     printf("\n========================================\n");
