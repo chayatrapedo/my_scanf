@@ -317,7 +317,7 @@ int read_float(float* f, int field_width) {
     }
 
     if (read_any_digits) {
-        *f = value * sign;
+        *f = value * (float)sign;
         return 1;
     }
 
@@ -458,13 +458,72 @@ int read_long_double(long double* f, int field_width) {
     return 0;
 }
 
-/*
 int read_hex_integer(int* x) {
-    // TO-DO
-    // %x - not yet defined
+    // Skip leading whitespace
+    int c = getchar();
+    while (c != EOF && isspace(c)) {
+        c = getchar();
+    }
+
+    // Check for EOF
+    if (c == EOF) {
+        return -1;
+    }
+
+    // Check for sign
+    int sign = 1;
+    if (c == '-') {
+        sign = -1;
+        c = getchar();
+    } else if (c == '+') {
+        c = getchar();
+    }
+
+    // Check for optional 0x or 0X prefix
+    if (c == '0') {
+        int next = getchar();
+        if (next == 'x' || next == 'X') {
+            c = getchar();  // Move past the 'x' or 'X'
+        } else {
+            // Put back the character after '0'
+            if (next != EOF) {
+                ungetc(next, stdin);
+            }
+            // '0' is a valid hex digit, so continue
+        }
+    }
+
+    int value = 0;
+    int read_any_digits = 0;
+
+    while (c != EOF && isxdigit(c)) {
+        int digit;
+        if (isdigit(c)) {
+            digit = c - '0';
+        } else if (c >= 'a' && c <= 'f') {
+            digit = c - 'a' + 10;
+        } else if (c >= 'A' && c <= 'F') {
+            digit = c - 'A' + 10;
+        } else {
+            break;
+        }
+        value = value * 16 + digit;
+        read_any_digits = 1;
+        c = getchar();
+    }
+
+    // Put back the last character
+    if (c != EOF) {
+        ungetc(c, stdin);
+    }
+
+    if (read_any_digits) {
+        *x = value * sign;
+        return 1;
+    }
+
     return 0;
 }
-*/
 
 int read_char(char* c) {
     int ch = getchar();
@@ -713,6 +772,33 @@ int my_scanf(const char *format, ...) {
                     break;
                 }
 
+                case 'x': {
+                    int result;
+
+                    if (spec.suppress) {
+                        // Read but don't store
+                        int temp;
+                        result = read_hex_integer(&temp);
+                    } else {
+                        // Normal case - get pointer from va_arg and store
+                        int *ptr = va_arg(args, int*);
+                        result = read_hex_integer(ptr);
+                        if (result == 1) {
+                            assigned_count++;
+                        }
+                    }
+
+                    // Handle EOF/failure
+                    if (result == -1) {
+                        va_end(args);
+                        return (assigned_count == 0) ? -1 : assigned_count;
+                    } else if (result == 0) {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    break;
+                }
+
                 default:
                     // Unknown specifier - skip it
                     break;
@@ -746,7 +832,7 @@ int my_scanf(const char *format, ...) {
 int main() {
     // testing bad pointer assignment to scanf()
     int res;
-    scanf("%3d", &res);
+    my_scanf("%x", &res);
     printf("%d",res);
 }
 */
