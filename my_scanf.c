@@ -80,7 +80,7 @@ static void skip_whitespace() {
 }
 
 // helper functions - modifiers
-int read_integer(int* d) {
+int read_integer(int* d, int field_width) {
     // Skip leading whitespace
     int c = getchar();
     while (c != EOF && isspace(c)) {
@@ -92,22 +92,27 @@ int read_integer(int* d) {
         return -1;
     }
 
+    int chars_read = 0;
+    int max_chars = (field_width > 0) ? field_width : INT_MAX;
+
     // Check for sign
     int sign = 1;
-    if (c == '-') {
-        sign = -1;
-        c = getchar();
-    } else if (c == '+') {
+    if ((c == '-' || c == '+') && chars_read < max_chars) {
+        if (c == '-') {
+            sign = -1;
+        }
+        chars_read++;
         c = getchar();
     }
 
     int value = 0;
     int read_any_digits = 0;
 
-    while (c != EOF && isdigit(c)) {
+    while (c != EOF && isdigit(c) && chars_read < max_chars) {
         int digit = c - '0';
         value = value * 10 + digit;
         read_any_digits = 1;
+        chars_read++;
         c = getchar();
     }
 
@@ -125,7 +130,7 @@ int read_integer(int* d) {
 }
 
 // variations of the read integer function
-int read_long(long* d) {
+int read_long(long* d, int field_width) {
     // Skip leading whitespace
     int c = getchar();
     while (c != EOF && isspace(c)) {
@@ -137,22 +142,27 @@ int read_long(long* d) {
         return -1;
     }
 
+    int chars_read = 0;
+    int max_chars = (field_width > 0) ? field_width : INT_MAX;
+
     // Check for sign
     int sign = 1;
-    if (c == '-') {
-        sign = -1;
-        c = getchar();
-    } else if (c == '+') {
+    if ((c == '-' || c == '+') && chars_read < max_chars) {
+        if (c == '-') {
+            sign = -1;
+        }
+        chars_read++;
         c = getchar();
     }
 
     long value = 0;
     int read_any_digits = 0;
 
-    while (c != EOF && isdigit(c)) {
+    while (c != EOF && isdigit(c) && chars_read < max_chars) {
         int digit = c - '0';
         value = value * 10 + digit;
         read_any_digits = 1;
+        chars_read++;
         c = getchar();
     }
 
@@ -169,7 +179,7 @@ int read_long(long* d) {
     return 0;
 }
 
-int read_long_long(long long* d) {
+int read_long_long(long long* d, int field_width) {
     // Skip leading whitespace
     int c = getchar();
     while (c != EOF && isspace(c)) {
@@ -181,22 +191,27 @@ int read_long_long(long long* d) {
         return -1;
     }
 
+    int chars_read = 0;
+    int max_chars = (field_width > 0) ? field_width : INT_MAX;
+
     // Check for sign
     int sign = 1;
-    if (c == '-') {
-        sign = -1;
-        c = getchar();
-    } else if (c == '+') {
+    if ((c == '-' || c == '+') && chars_read < max_chars) {
+        if (c == '-') {
+            sign = -1;
+        }
+        chars_read++;
         c = getchar();
     }
 
     long long value = 0;
     int read_any_digits = 0;
 
-    while (c != EOF && isdigit(c)) {
+    while (c != EOF && isdigit(c) && chars_read < max_chars) {
         int digit = c - '0';
         value = value * 10 + digit;
         read_any_digits = 1;
+        chars_read++;
         c = getchar();
     }
 
@@ -213,7 +228,7 @@ int read_long_long(long long* d) {
     return 0;
 }
 
-int read_short(short* d) {
+int read_short(short* d, int field_width) {
     // Skip leading whitespace
     int c = getchar();
     while (c != EOF && isspace(c)) {
@@ -225,22 +240,27 @@ int read_short(short* d) {
         return -1;
     }
 
+    int chars_read = 0;
+    int max_chars = (field_width > 0) ? field_width : INT_MAX;
+
     // Check for sign
     int sign = 1;
-    if (c == '-') {
-        sign = -1;
-        c = getchar();
-    } else if (c == '+') {
+    if ((c == '-' || c == '+') && chars_read < max_chars) {
+        if (c == '-') {
+            sign = -1;
+        }
+        chars_read++;
         c = getchar();
     }
 
     int value = 0;
     int read_any_digits = 0;
 
-    while (c != EOF && isdigit(c)) {
+    while (c != EOF && isdigit(c) && chars_read < max_chars) {
         int digit = c - '0';
         value = value * 10 + digit;
         read_any_digits = 1;
+        chars_read++;
         c = getchar();
     }
 
@@ -458,7 +478,7 @@ int read_long_double(long double* f, int field_width) {
     return 0;
 }
 
-int read_hex_integer(int* x) {
+int read_hex_integer(int* x, int field_width) {
     // Skip leading whitespace
     int c = getchar();
     while (c != EOF && isspace(c)) {
@@ -470,33 +490,39 @@ int read_hex_integer(int* x) {
         return -1;
     }
 
+    int chars_read = 0;
+    int max_chars = (field_width > 0) ? field_width : INT_MAX;
+
     // Check for sign
     int sign = 1;
-    if (c == '-') {
-        sign = -1;
-        c = getchar();
-    } else if (c == '+') {
+    if ((c == '-' || c == '+') && chars_read < max_chars) {
+        if (c == '-') {
+            sign = -1;
+        }
+        chars_read++;
         c = getchar();
     }
 
     // Check for optional 0x or 0X prefix
-    if (c == '0') {
+    if (c == '0' && chars_read < max_chars) {
+        chars_read++;
         int next = getchar();
-        if (next == 'x' || next == 'X') {
+        if ((next == 'x' || next == 'X') && chars_read < max_chars) {
+            chars_read++;
             c = getchar();  // Move past the 'x' or 'X'
         } else {
             // Put back the character after '0'
             if (next != EOF) {
                 ungetc(next, stdin);
             }
-            // '0' is a valid hex digit, so continue
+            // '0' is a valid hex digit, so c is already '0'
         }
     }
 
     int value = 0;
     int read_any_digits = 0;
 
-    while (c != EOF && isxdigit(c)) {
+    while (c != EOF && isxdigit(c) && chars_read < max_chars) {
         int digit;
         if (isdigit(c)) {
             digit = c - '0';
@@ -509,6 +535,7 @@ int read_hex_integer(int* x) {
         }
         value = value * 16 + digit;
         read_any_digits = 1;
+        chars_read++;
         c = getchar();
     }
 
@@ -525,13 +552,17 @@ int read_hex_integer(int* x) {
     return 0;
 }
 
-int read_char(char* c) {
-    int ch = getchar();
-    if (ch == EOF) {
-        return -1;
+int read_char(char* c, int field_width) {
+    int chars_to_read = (field_width > 0) ? field_width : 1;
+
+    for (int i = 0; i < chars_to_read; i++) {
+        int ch = getchar();
+        if (ch == EOF) {
+            return (i == 0) ? -1 : 1;  // EOF on first char is error, otherwise success
+        }
+        c[i] = (char)ch;
     }
 
-    *c = (char)ch;
     return 1;
 }
 
@@ -611,10 +642,10 @@ int my_scanf(const char *format, ...) {
                     if (strcmp(spec.length_mod, "ll") == 0) {
                         if (spec.suppress) {
                             long long temp;
-                            result = read_long_long(&temp);
+                            result = read_long_long(&temp, spec.field_width);
                         } else {
                             long long *ptr = va_arg(args, long long*);
-                            result = read_long_long(ptr);
+                            result = read_long_long(ptr, spec.field_width);
                             if (result == 1) {
                                 assigned_count++;
                             }
@@ -622,10 +653,10 @@ int my_scanf(const char *format, ...) {
                     } else if (strcmp(spec.length_mod, "l") == 0) {
                         if (spec.suppress) {
                             long temp;
-                            result = read_long(&temp);
+                            result = read_long(&temp, spec.field_width);
                         } else {
                             long *ptr = va_arg(args, long*);
-                            result = read_long(ptr);
+                            result = read_long(ptr, spec.field_width);
                             if (result == 1) {
                                 assigned_count++;
                             }
@@ -633,10 +664,10 @@ int my_scanf(const char *format, ...) {
                     } else if (strcmp(spec.length_mod, "h") == 0) {
                         if (spec.suppress) {
                             short temp;
-                            result = read_short(&temp);
+                            result = read_short(&temp, spec.field_width);
                         } else {
                             short *ptr = va_arg(args, short*);
-                            result = read_short(ptr);
+                            result = read_short(ptr, spec.field_width);
                             if (result == 1) {
                                 assigned_count++;
                             }
@@ -645,10 +676,10 @@ int my_scanf(const char *format, ...) {
                         // Default: regular int
                         if (spec.suppress) {
                             int temp;
-                            result = read_integer(&temp);
+                            result = read_integer(&temp, spec.field_width);
                         } else {
                             int *ptr = va_arg(args, int*);
-                            result = read_integer(ptr);
+                            result = read_integer(ptr, spec.field_width);
                             if (result == 1) {
                                 assigned_count++;
                             }
@@ -668,16 +699,16 @@ int my_scanf(const char *format, ...) {
 
                 case 'c': {
                     int result;
+                    int num_chars = (spec.field_width > 0) ? spec.field_width : 1;
 
                     if (spec.suppress) {
-                        char temp;
-                        result = read_char(&temp);
-                        // Don't increment assigned_count
-                        // Don't call va_arg
+                        // Read but don't store - use a temporary buffer
+                        char temp[256];
+                        result = read_char(temp, num_chars);
                     } else {
                         // Normal case - get pointer from va_arg and store
                         char *ptr = va_arg(args, char*);
-                        result = read_char(ptr);
+                        result = read_char(ptr, num_chars);
                         if (result == 1) {
                             assigned_count++;
                         }
@@ -778,11 +809,11 @@ int my_scanf(const char *format, ...) {
                     if (spec.suppress) {
                         // Read but don't store
                         int temp;
-                        result = read_hex_integer(&temp);
+                        result = read_hex_integer(&temp, spec.field_width);
                     } else {
                         // Normal case - get pointer from va_arg and store
                         int *ptr = va_arg(args, int*);
-                        result = read_hex_integer(ptr);
+                        result = read_hex_integer(ptr, spec.field_width);
                         if (result == 1) {
                             assigned_count++;
                         }
