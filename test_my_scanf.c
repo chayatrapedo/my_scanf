@@ -1385,6 +1385,42 @@ int test_my_scanf_binary(const char *test_name, const char *input_file) {
     return passed;
 }
 
+int test_my_scanf_gen_z(const char *test_name, const char *input_file, const char *expected_output) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+
+    // Test my_scanf()
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char my_scanf_val[256] = {0};
+    int my_scanf_ret = my_scanf("%z", my_scanf_val);
+
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf(%%z) returned: %d, value: '%s'\n", my_scanf_ret, my_scanf_val);
+    printf("\tExpected: '%s'\n", expected_output);
+
+    int passed = 0;
+    if (my_scanf_ret == 1 && strcmp(my_scanf_val, expected_output) == 0) {
+        printf("Result: %sPASS%s\n", COLOR_GREEN, COLOR_RESET);
+        passed = 1;
+        tests_passed++;
+    } else {
+        printf("Result: %sFAIL%s\n", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+    }
+
+    printf("***\n");
+    return passed;
+}
+
+
 int main() {
     printf("  MY_SCANF TEST SUITE\n");
     printf("\n=== %%d Tests ==========================\n");
@@ -1501,6 +1537,12 @@ int main() {
     test_my_scanf_binary("Binary negative", "test_inputs/test_binary_negative.txt");
     test_my_scanf_binary("Binary 8 bits", "test_inputs/test_binary_eight_bits.txt");
     test_my_scanf_binary("Binary 32 bits", "test_inputs/test_binary_large.txt");
+
+    printf("\n=== %%z Tests (Custom: Gen Z) ==========\n");
+    test_my_scanf_gen_z("Gen Z simple", "test_inputs/test_genz_simple.txt", "hello world lol");
+    test_my_scanf_gen_z("Gen Z with whitespace", "test_inputs/test_genz_whitespace.txt", "there's lots of leading and trailing whitespace lol");
+    test_my_scanf_gen_z("Gen Z only spaces", "test_inputs/test_genz_only_spaces.txt", "lol");
+    test_my_scanf_gen_z("Gen Z long phrase", "test_inputs/test_genz_long.txt", "low key scared that ill fail comp org lol");
 
     // Print summary
     printf("\n========================================\n");

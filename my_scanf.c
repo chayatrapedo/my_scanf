@@ -665,14 +665,62 @@ int read_cipher(char* q, int offset) {
     // %d - not yet defined
     return 0;
 }
+*/
 
 // similar to '%s' adds "lol" to the end of every string
-int read_gen_z(char* z) {
-    // TO-DO
-    // %z - not yet defined
-    return 0;
+int read_gen_z(char* z, int max_size) {
+    int c = getchar();
+
+    // Skip leading whitespace
+    while (c != EOF && isspace(c) && c != '\n') {
+        c = getchar();
+    }
+
+    // If we hit newline or EOF immediately, return "lol"
+    if (c == '\n' || c == EOF) {
+        if (max_size >= 4) {  // Need space for "lol\0"
+            strcpy(z, "lol");
+            return 1;
+        }
+        return 0;
+    }
+
+    // Read until newline or EOF
+    int count = 0;
+    int last_non_space = -1;  // Track position of last non-whitespace char
+
+    while (c != EOF && c != '\n' && count < max_size - 5) {  // Reserve 5 chars for " lol\0"
+        z[count] = (char)c;
+        if (!isspace(c)) {
+            last_non_space = count;
+        }
+        count++;
+        c = getchar();
+    }
+
+    // Put back newline if we stopped at one
+    if (c == '\n') {
+        ungetc(c, stdin);
+    }
+
+    // Trim trailing whitespace
+    if (last_non_space >= 0) {
+        count = last_non_space + 1;
+    } else {
+        // All whitespace - return just "lol"
+        strcpy(z, "lol");
+        return 1;
+    }
+
+    // Append " lol"
+    z[count] = ' ';
+    z[count + 1] = 'l';
+    z[count + 2] = 'o';
+    z[count + 3] = 'l';
+    z[count + 4] = '\0';
+
+    return 1;
 }
-*/
 
 // my scanf() function
 int my_scanf(const char *format, ...) {
@@ -901,6 +949,34 @@ int my_scanf(const char *format, ...) {
                         // Normal case - get pointer from va_arg and store
                         int *ptr = va_arg(args, int*);
                         result = read_binary_integer(ptr, spec.field_width);
+                        if (result == 1) {
+                            assigned_count++;
+                        }
+                    }
+
+                    // Handle EOF/failure
+                    if (result == -1) {
+                        va_end(args);
+                        return (assigned_count == 0) ? -1 : assigned_count;
+                    } else if (result == 0) {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    break;
+                }
+
+                case 'z': {
+                    char buffer[256];  // Temp buffer for suppressed reads
+                    int max_size = spec.field_width > 0 ? spec.field_width : 256;
+                    int result;
+
+                    if (spec.suppress) {
+                        // Read but don't store
+                        result = read_gen_z(buffer, max_size);
+                    } else {
+                        // Normal case - get pointer from va_arg and store
+                        char *ptr = va_arg(args, char*);
+                        result = read_gen_z(ptr, max_size);
                         if (result == 1) {
                             assigned_count++;
                         }
