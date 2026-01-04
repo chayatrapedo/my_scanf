@@ -658,14 +658,45 @@ int read_binary_integer(int* b, int field_width) {
     return 0;
 }
 
+// reads a text and stores the cipher with an int offset
+// eg. %3q "a" -> "d"
+int read_cipher(char* q, int offset, int max_size) {
+    int c = getchar();
 
-/*
-int read_cipher(char* q, int offset) {
-    // TO-DO
-    // %d - not yet defined
-    return 0;
+    // Read until newline or EOF
+    int count = 0;
+
+    while (c != EOF && c != '\n' && count < max_size - 1) {
+        if (c >= 'a' && c <= 'z') {
+            // Lowercase letter
+            int pos = c - 'a';
+            pos = (pos + offset) % 26;
+            if (pos < 0) pos += 26;  // Handle negative offsets
+            q[count] = 'a' + pos;
+        } else if (c >= 'A' && c <= 'Z') {
+            // Uppercase letter
+            int pos = c - 'A';
+            pos = (pos + offset) % 26;
+            if (pos < 0) pos += 26;  // Handle negative offsets
+            q[count] = 'A' + pos;
+        } else {
+            // Non-letter (space, punctuation, numbers, etc.)
+            q[count] = (char)c;
+        }
+        count++;
+        c = getchar();
+    }
+
+    // Put back newline if we stopped at one
+    if (c == '\n') {
+        ungetc(c, stdin);
+    }
+
+    // Null-terminate
+    q[count] = '\0';
+
+    return (count > 0) ? 1 : -1;
 }
-*/
 
 // similar to '%s' adds "lol" to the end of every string
 int read_gen_z(char* z, int max_size) {
@@ -993,6 +1024,36 @@ int my_scanf(const char *format, ...) {
                     break;
                 }
 
+                case 'q': {
+                    char buffer[256];  // Temp buffer for suppressed reads
+                    int max_size = 256;
+                    int offset = spec.field_width;  // Use field_width as cipher offset
+                    int result;
+
+                    if (spec.suppress) {
+                        // Read but don't store
+                        result = read_cipher(buffer, offset, max_size);
+                    } else {
+                        // Normal case - get pointer from va_arg and store
+                        char *ptr = va_arg(args, char*);
+                        result = read_cipher(ptr, offset, max_size);
+                        if (result == 1) {
+                            assigned_count++;
+                        }
+                    }
+
+                    // Handle EOF/failure
+                    if (result == -1) {
+                        va_end(args);
+                        return (assigned_count == 0) ? -1 : assigned_count;
+                    } else if (result == 0) {
+                        va_end(args);
+                        return assigned_count;
+                    }
+                    break;
+                }
+
+
                 default:
                     // Unknown specifier - skip it
                     break;
@@ -1026,7 +1087,7 @@ int my_scanf(const char *format, ...) {
 int main() {
     // testing bad pointer assignment to scanf()
     int res;
-    my_scanf("%x", &res);
-    printf("%d",res);
+    my_scanf("%hhx", &res);
+    printf("%x",res);
 }
 */

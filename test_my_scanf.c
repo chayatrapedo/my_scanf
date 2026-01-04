@@ -1420,6 +1420,108 @@ int test_my_scanf_gen_z(const char *test_name, const char *input_file, const cha
     return passed;
 }
 
+int test_my_scanf_cipher(const char *test_name, const char *input_file, int offset) {
+    tests_run++;
+    printf("\nTEST: %s \n", test_name);
+    printf("Input file: %s\n", input_file);
+    printf("Cipher offset: %d\n", offset);
+
+    // Read original text as string
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char original[256] = {0};
+    if (fgets(original, sizeof(original), stdin) == NULL) {
+        printf("%sFAIL: Could not read original text\n%s", COLOR_RED, COLOR_RESET);
+        freopen("/dev/tty", "r", stdin);
+        tests_failed++;
+        return 0;
+    }
+
+    // Remove trailing newline
+    size_t len = strlen(original);
+    if (len > 0 && original[len-1] == '\n') {
+        original[len-1] = '\0';
+    }
+
+    freopen("/dev/tty", "r", stdin);
+    printf("\tOriginal text: '%s'\n", original);
+
+    // First pass: cipher with offset
+    char format_cipher[10];
+    snprintf(format_cipher, sizeof(format_cipher), "%%%dq", offset);
+
+    stdin = freopen(input_file, "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not reopen input file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char ciphered[256] = {0};
+    int cipher_ret = my_scanf(format_cipher, ciphered);
+
+    freopen("/dev/tty", "r", stdin);
+    printf("\tCiphered text: '%s'\n", ciphered);
+
+    if (cipher_ret != 1) {
+        printf("%sFAIL: Cipher failed\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    // Second pass: decipher (reverse offset)
+    // Write ciphered text to temp file
+    FILE *temp = fopen("test_inputs/temp_cipher.txt", "w");
+    if (!temp) {
+        printf("%sFAIL: Could not create temp file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+    fprintf(temp, "%s\n", ciphered);
+    fclose(temp);
+
+    // Decipher with opposite offset
+    char format_decipher[10];
+    snprintf(format_decipher, sizeof(format_decipher), "%%%dq", 26 - offset);
+
+    stdin = freopen("test_inputs/temp_cipher.txt", "r", stdin);
+    if (!stdin) {
+        printf("%sFAIL: Could not open temp file\n%s", COLOR_RED, COLOR_RESET);
+        tests_failed++;
+        return 0;
+    }
+
+    char deciphered[256] = {0};
+    int decipher_ret = my_scanf(format_decipher, deciphered);
+
+    freopen("/dev/tty", "r", stdin);
+    printf("\tDeciphered text: '%s'\n", deciphered);
+
+    // Clean up temp file
+    remove("test_inputs/temp_cipher.txt");
+
+    // Compare original to deciphered
+    int passed = 0;
+    if (decipher_ret == 1 && strcmp(original, deciphered) == 0) {
+        printf("Result: %sPASS%s (cipher → decipher matches original)\n",
+               COLOR_GREEN, COLOR_RESET);
+        passed = 1;
+        tests_passed++;
+    } else {
+        printf("Result: %sFAIL%s (original: '%s', deciphered: '%s')\n",
+               COLOR_RED, COLOR_RESET, original, deciphered);
+        tests_failed++;
+    }
+
+    printf("***\n");
+    return passed;
+}
+
 
 int main() {
     printf("  MY_SCANF TEST SUITE\n");
@@ -1543,6 +1645,13 @@ int main() {
     test_my_scanf_gen_z("Gen Z with whitespace", "test_inputs/test_genz_whitespace.txt", "there's lots of leading and trailing whitespace lol");
     test_my_scanf_gen_z("Gen Z only spaces", "test_inputs/test_genz_only_spaces.txt", "lol");
     test_my_scanf_gen_z("Gen Z long phrase", "test_inputs/test_genz_long.txt", "low key scared that ill fail comp org lol");
+
+    printf("\n=== %%Nq Tests (Custom: Cipher) ========\n");
+    test_my_scanf_cipher("Cipher offset 5", "test_inputs/test_cipher_simple.txt", 5);
+    test_my_scanf_cipher("Cipher mixed case", "test_inputs/test_cipher_mixed_case.txt", 5);
+    test_my_scanf_cipher("Cipher wrap around", "test_inputs/test_cipher_wrap.txt", 3);
+    test_my_scanf_cipher("Cipher with punctuation", "test_inputs/test_cipher_punctuation.txt", 13);  // ROT13!
+    test_my_scanf_cipher("Cipher offset 1", "test_inputs/test_cipher_simple.txt", 1);
 
     // Print summary
     printf("\n========================================\n");
