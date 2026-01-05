@@ -853,6 +853,7 @@ int my_scanf(const char *format, ...) {
     int assigned_count = 0;
     int i = 0;
 
+
     while (format[i] != '\0') {
         if (format[i] == '%') {
             i++;  // Move past '%'
@@ -860,10 +861,28 @@ int my_scanf(const char *format, ...) {
                 break;
             }
 
+            // Handle %% as a literal '%'
+            if (format[i] == '%') {
+                // Skip any whitespace before the % if needed
+                int c = getchar();
+                if (c != '%') {
+                    // Mismatch - the literal % is missing
+                    if (c != EOF) {
+                        ungetc(c, stdin);
+                    }
+                    va_end(args);
+                    return assigned_count;  // Return what we've assigned so far
+                }
+                // Successfully matched the literal %
+                i++;  // Move past the second '%'
+                continue;
+            }
+
             // Parse the format specification
             FormatSpecifier spec;
             int consumed = parse_format_specifier(&format[i], &spec);
             i += consumed;
+
 
             // Handle based on specifier (ignore modifiers for now)
             switch (spec.specifier) {
@@ -1141,7 +1160,7 @@ int my_scanf(const char *format, ...) {
                     break;
             }
 
-            continue;  // Skip the i++ at the end of the while loop
+            continue;
         } else if (isspace(format[i])) {
             // Format has whitespace - skip whitespace in input
             skip_whitespace();
@@ -1165,11 +1184,12 @@ int my_scanf(const char *format, ...) {
     return assigned_count;
 }
 
+
 /*
 int main() {
     // testing bad pointer assignment to scanf()
-    int res;
-    my_scanf("%hhx", &res);
-    printf("%x",res);
+    char res[20];
+    my_scanf("%2q", &res);
+    printf("%s",res);
 }
 */

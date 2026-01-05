@@ -2,6 +2,23 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+    About the testing structure:
+
+    To mirror the interaction between scanf() and the buffer as closely as
+    possible, each test reads from small input files that are redirected to
+    stdin. Both scanf() and my_scanf() process the same input file separately,
+    and their behavior (return values and parsed values) is compared.
+
+    Test categories:
+    - Standard specifiers (%d, %f, %s, %x, etc.): Compare directly to scanf()
+    - Custom specifiers (%b, %z, %q): Cannot compare to scanf(); instead verify
+      against expected hardcoded values or use round-trip validation (e.g.,
+      cipher→decipher→original)
+    - Combo tests with custom specifiers: Use specialized test functions that
+      don't call scanf(), since scanf() doesn't understand custom specifiers
+*/
+
 // Test statistics
 static int tests_run = 0;
 static int tests_passed = 0;
@@ -13,10 +30,12 @@ static int tests_failed = 0;
 
 typedef enum { EXPECT_SUCCESS, EXPECT_FAILURE } ExpectedBehavior;
 
-// ============================================================================
 // GENERIC TEST HELPERS
-// ============================================================================
-
+// check_..._match functions: Compare scanf() and my_scanf() results for
+// different data types (int, float, double, string). Each function checks:
+//   - Return values match
+//   - Parsed values match (within epsilon for floats/doubles)
+//   - Both functions exhibit the expected behavior (success or failure)
 int check_int_match(int scanf_ret, int my_scanf_ret, int scanf_val, int my_scanf_val, ExpectedBehavior expected) {
     int both_succeeded = (scanf_ret > 0 && my_scanf_ret > 0);
     int both_failed = (scanf_ret <= 0 && my_scanf_ret <= 0);
@@ -143,10 +162,20 @@ int check_string_match(int scanf_ret, int my_scanf_ret, const char *scanf_val, c
     }
 }
 
-// ============================================================================
-// GENERIC TEST RUNNERS
-// ============================================================================
+// Helper for the test_binary function
+int manual_binary_to_int(const char *s) {
+    int value = 0, sign = 1, i = 0;
+    if (s[i] == '-') { sign = -1; i++; } else if (s[i] == '+') { i++; }
+    if (s[i] == '0' && (s[i+1] == 'b' || s[i+1] == 'B')) i += 2;
+    while (s[i] == '0' || s[i] == '1') value = value * 2 + (s[i++] - '0');
+    return value * sign;
+}
 
+// GENERIC TEST RUNNERS
+// test_... functions: Redirect input files to stdin, call scanf() and
+// my_scanf() with the same format, then compare results. Functions are
+// specialized by data type. Custom specifier tests only call my_scanf()
+// since scanf() doesn't understand %b, %z, or %q.
 int test_int(const char *name, const char *file, const char *fmt, ExpectedBehavior expected) {
     tests_run++;
     printf("\nTEST: %s\n", name);
@@ -359,14 +388,6 @@ int test_two_ints_with_literal(const char *name, const char *file, const char *f
     printf("***\n");
     if (passed) tests_passed++; else tests_failed++;
     return passed;
-}
-
-int manual_binary_to_int(const char *s) {
-    int value = 0, sign = 1, i = 0;
-    if (s[i] == '-') { sign = -1; i++; } else if (s[i] == '+') { i++; }
-    if (s[i] == '0' && (s[i+1] == 'b' || s[i+1] == 'B')) i += 2;
-    while (s[i] == '0' || s[i] == '1') value = value * 2 + (s[i++] - '0');
-    return value * sign;
 }
 
 int test_binary(const char *name, const char *file) {
@@ -793,10 +814,116 @@ int test_cipher_inverted(const char *name, const char *file, int offset) {
     return passed;
 }
 
-// ============================================================================
-// MAIN TEST SUITE
-// ============================================================================
+int test_combo_custom_only(const char *name, const char *file, const char *fmt, int expected_ret, int exp_val1, const char *exp_val2, int exp_val3) {
+    tests_run++;
+    printf("\nTEST: %s\n", name);
+    printf("Input file: %s\n", file);
+    printf("Format: %s\n", fmt);
 
+    stdin = freopen(file, "r", stdin);
+    if (!stdin) { printf("FAIL: Can't open %s\n", file); tests_failed++; return 0; }
+
+    int v1 = -999;
+    char v2[256] = {0};
+    int v3 = -999;
+    int my_scanf_ret = my_scanf(fmt, &v1, v2, &v3);
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, values: %d '%s' %d\n", my_scanf_ret, v1, v2, v3);
+    printf("\tExpected: ret=%d, values: %d '%s' %d\n", expected_ret, exp_val1, exp_val2, exp_val3);
+
+    int passed = (my_scanf_ret == expected_ret && v1 == exp_val1 &&
+                  strcmp(v2, exp_val2) == 0 && v3 == exp_val3);
+    printf("Result: %s%s%s\n", passed ? COLOR_GREEN : COLOR_RED,
+           passed ? "PASS" : "FAIL", COLOR_RESET);
+    printf("***\n");
+    if (passed) tests_passed++; else tests_failed++;
+    return passed;
+}
+
+int test_combo_binary_native(const char *name, const char *file, const char *fmt, int expected_ret, int exp_bin, int exp_int) {
+    tests_run++;
+    printf("\nTEST: %s\n", name);
+    printf("Input file: %s\n", file);
+    printf("Format: %s\n", fmt);
+
+    stdin = freopen(file, "r", stdin);
+    if (!stdin) { printf("FAIL: Can't open %s\n", file); tests_failed++; return 0; }
+
+    int b_val = -999;
+    int i_val = -999;
+    int my_scanf_ret = my_scanf(fmt, &b_val, &i_val);
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, binary: %d, int: %d\n", my_scanf_ret, b_val, i_val);
+    printf("\tExpected: ret=%d, binary: %d, int: %d\n", expected_ret, exp_bin, exp_int);
+
+    int passed = (my_scanf_ret == expected_ret && b_val == exp_bin && i_val == exp_int);
+    printf("Result: %s%s%s\n", passed ? COLOR_GREEN : COLOR_RED,
+           passed ? "PASS" : "FAIL", COLOR_RESET);
+    printf("***\n");
+    if (passed) tests_passed++; else tests_failed++;
+    return passed;
+}
+
+int test_combo_int_genz(const char *name, const char *file, const char *fmt, int expected_ret, int exp_int, const char *exp_genz) {
+    tests_run++;
+    printf("\nTEST: %s\n", name);
+    printf("Input file: %s\n", file);
+    printf("Format: %s\n", fmt);
+
+    stdin = freopen(file, "r", stdin);
+    if (!stdin) { printf("FAIL: Can't open %s\n", file); tests_failed++; return 0; }
+
+    int i_val = -999;
+    char z_val[256] = {0};
+    int my_scanf_ret = my_scanf(fmt, &i_val, z_val);
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, int: %d, genz: '%s'\n", my_scanf_ret, i_val, z_val);
+    printf("\tExpected: ret=%d, int: %d, genz: '%s'\n", expected_ret, exp_int, exp_genz);
+
+    int passed = (my_scanf_ret == expected_ret && i_val == exp_int && strcmp(z_val, exp_genz) == 0);
+    printf("Result: %s%s%s\n", passed ? COLOR_GREEN : COLOR_RED,
+           passed ? "PASS" : "FAIL", COLOR_RESET);
+    printf("***\n");
+    if (passed) tests_passed++; else tests_failed++;
+    return passed;
+}
+
+int test_literal_percent(const char *name, const char *file, const char *fmt, int expected_ret, int exp_val1, int exp_val2) {
+    tests_run++;
+    printf("\nTEST: %s\n", name);
+    printf("Input file: %s\n", file);
+    printf("Format: %s\n", fmt);
+
+    stdin = freopen(file, "r", stdin);
+    if (!stdin) { printf("FAIL: Can't open %s\n", file); tests_failed++; return 0; }
+
+    int v1 = -999, v2 = -999;
+    int scanf_ret = scanf(fmt, &v1, &v2);
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tscanf()    returned: %d, values: %d %d\n", scanf_ret, v1, v2);
+
+    stdin = freopen(file, "r", stdin);
+    int v3 = -999, v4 = -999;
+    int my_scanf_ret = my_scanf(fmt, &v3, &v4);
+    freopen("/dev/tty", "r", stdin);
+
+    printf("\tmy_scanf() returned: %d, values: %d %d\n", my_scanf_ret, v3, v4);
+    printf("\tExpected: ret=%d, values: %d %d\n", expected_ret, exp_val1, exp_val2);
+
+    int passed = (scanf_ret == my_scanf_ret && my_scanf_ret == expected_ret &&
+                  v1 == v3 && v2 == v4 && v1 == exp_val1 && v2 == exp_val2);
+    printf("Result: %s%s%s\n", passed ? COLOR_GREEN : COLOR_RED,
+           passed ? "PASS" : "FAIL", COLOR_RESET);
+    printf("***\n");
+    if (passed) tests_passed++; else tests_failed++;
+    return passed;
+}
+
+// MAIN TEST SUITE
 int main() {
     printf("\n=== MY_SCANF TEST SUITE ===\n\n");
 
@@ -932,20 +1059,13 @@ int main() {
     test_suppress_string("Int + String", "test_inputs/test_combo_int_string.txt", "%d %s");
     test_suppress_string("Float + String", "test_inputs/test_combo_float_string.txt", "%f %s");
 
-    printf("\n--- COMBO: CUSTOM SPECIFIERS ---\n");
-    // NEED TO FIX - can't compare to scanf() because scanf() doeesn't support custom mods
-    // test_combo_two_ints("Binary + Int", "test_inputs/test_combo_binary_int.txt", "%b %d");
-    // test_suppress_string("Int + Gen Z", "test_inputs/test_combo_int_genz.txt", "%d %z");
-    // test_combo_binary_genz_int("Binary + Gen Z + Int", "test_inputs/test_combo_binary_genz_int.txt", "%b %z %d");
-
     printf("\n--- COMBO: WITH SUPPRESSION ---\n");
     test_suppress_three("Suppress Hex + Read Ints", "test_inputs/test_combo_suppress_hex_int.txt", "%*x %d %d");
     test_suppress_float("Int + Suppress Float + Float", "test_inputs/test_combo_int_suppress_float.txt", "%d %*f %f");
 
     printf("\n--- COMBO: MULTIPLE ITEMS (3+) ---\n");
     test_combo_three_mixed("Int + Float + String", "test_inputs/test_combo_int_float_string.txt", "%d %f %s");
-    // NEED TO FIX
-    // test_suppress_string("Hex + Float + String", "test_inputs/test_combo_hex_float_string.txt", "%x %f %s");
+    test_combo_three_mixed("Hex + Float + String", "test_inputs/test_combo_hex_float_string.txt", "%x %f %s");
 
     printf("\n--- COMBO: WITH LITERALS ---\n");
     test_combo_two_ints("Literal Comma", "test_inputs/test_combo_literal_int_comma_int.txt", "%d,%d");
@@ -965,6 +1085,18 @@ int main() {
     test_suppress_float("Read nothing", "test_inputs/test_combo_read_nothing.txt", "%d %f");
     test_suppress_three("All suppressed", "test_inputs/test_combo_all_suppressed.txt", "%*d %*d %*f");
     test_suppress_three("Mixed suppress", "test_inputs/test_combo_mixed_suppress.txt", "%d %*d %f");
+
+    printf("\n--- COMBO: CUSTOM SPECIFIERS ---\n");
+    // For test_combo_binary_int.txt containing: "1010 42"
+    test_combo_binary_native("Binary + Int", "test_inputs/test_combo_binary_int.txt", "%b %d", 2, 10, 42);
+    test_combo_int_genz("Int + Gen Z", "test_inputs/test_combo_int_genz.txt", "%d %z", 2, 123, "hello world lol");
+    test_combo_custom_only("Binary + Gen Z + Int", "test_inputs/test_combo_binary_genz_int.txt","%b %z %d", 3, 10, "test lol", 99);
+
+    printf("\n--- %% LITERAL TESTS ---\n");
+    test_int("Percent literal: '75%%'","test_inputs/test_percent_simple.txt","%d%%", EXPECT_SUCCESS);
+    test_two_ints_with_literal("Percent literal: '10%% 20%%'","test_inputs/test_percent_two.txt","%d%% %d%%");
+    test_int("Percent literal partial: missing %%", "test_inputs/test_percent_missing.txt", "%d%%", EXPECT_SUCCESS);
+    test_suppress_string("Percent literal: '10%% cheaper'", "test_inputs/test_percent_string.txt", "%d%% %s");
 
     printf("\n========================================\n");
     printf("TEST SUMMARY\n");
