@@ -1385,10 +1385,11 @@ int test_my_scanf_binary(const char *test_name, const char *input_file) {
     return passed;
 }
 
-int test_my_scanf_gen_z(const char *test_name, const char *input_file, const char *expected_output) {
+int test_my_scanf_gen_z(const char *test_name, const char *input_file, const char *format_str, const char *expected_output) {
     tests_run++;
     printf("\nTEST: %s \n", test_name);
     printf("Input file: %s\n", input_file);
+    printf("Format: %s\n", format_str);
 
     // Test my_scanf()
     stdin = freopen(input_file, "r", stdin);
@@ -1399,11 +1400,11 @@ int test_my_scanf_gen_z(const char *test_name, const char *input_file, const cha
     }
 
     char my_scanf_val[256] = {0};
-    int my_scanf_ret = my_scanf("%z", my_scanf_val);
+    int my_scanf_ret = my_scanf(format_str, my_scanf_val);
 
     freopen("/dev/tty", "r", stdin);
 
-    printf("\tmy_scanf(%%z) returned: %d, value: '%s'\n", my_scanf_ret, my_scanf_val);
+    printf("\tmy_scanf() returned: %d, value: '%s'\n", my_scanf_ret, my_scanf_val);
     printf("\tExpected: '%s'\n", expected_output);
 
     int passed = 0;
@@ -1485,9 +1486,10 @@ int test_my_scanf_cipher(const char *test_name, const char *input_file, int offs
     fprintf(temp, "%s\n", ciphered);
     fclose(temp);
 
-    // Decipher with opposite offset
+    // Decipher with opposite offset: use (26 - offset) to reverse
+    int reverse_offset = (26 - offset) % 26;
     char format_decipher[10];
-    snprintf(format_decipher, sizeof(format_decipher), "%%%dq", 26 - offset);
+    snprintf(format_decipher, sizeof(format_decipher), "%%%dq", reverse_offset);
 
     stdin = freopen("test_inputs/temp_cipher.txt", "r", stdin);
     if (!stdin) {
@@ -1521,7 +1523,6 @@ int test_my_scanf_cipher(const char *test_name, const char *input_file, int offs
     printf("***\n");
     return passed;
 }
-
 
 int main() {
     printf("  MY_SCANF TEST SUITE\n");
@@ -1641,10 +1642,12 @@ int main() {
     test_my_scanf_binary("Binary 32 bits", "test_inputs/test_binary_large.txt");
 
     printf("\n=== %%z Tests (Custom: Gen Z) ==========\n");
-    test_my_scanf_gen_z("Gen Z simple", "test_inputs/test_genz_simple.txt", "hello world lol");
-    test_my_scanf_gen_z("Gen Z with whitespace", "test_inputs/test_genz_whitespace.txt", "there's lots of leading and trailing whitespace lol");
-    test_my_scanf_gen_z("Gen Z only spaces", "test_inputs/test_genz_only_spaces.txt", "lol");
-    test_my_scanf_gen_z("Gen Z long phrase", "test_inputs/test_genz_long.txt", "low key scared that ill fail comp org lol");
+    test_my_scanf_gen_z("Gen Z simple", "test_inputs/test_genz_simple.txt", "%z", "hello world lol");
+    test_my_scanf_gen_z("Gen Z with whitespace", "test_inputs/test_genz_whitespace.txt", "%z", "there's lots of leading and trailing whitespace lol");
+    test_my_scanf_gen_z("Gen Z only spaces", "test_inputs/test_genz_only_spaces.txt", "%z", "lol");
+    test_my_scanf_gen_z("Gen Z long phrase", "test_inputs/test_genz_long.txt", "%z", "low key scared that ill fail comp org lol");
+    test_my_scanf_gen_z("Gen Z with exclaim", "test_inputs/test_genz_exclaim.txt", "%!z", "that's so cool lol!");
+    test_my_scanf_gen_z("Gen Z haha", "test_inputs/test_genz_haha.txt", "%!hz", "this isn't funny haha!");
 
     printf("\n=== %%Nq Tests (Custom: Cipher) ========\n");
     test_my_scanf_cipher("Cipher offset 5", "test_inputs/test_cipher_simple.txt", 5);
@@ -1652,6 +1655,7 @@ int main() {
     test_my_scanf_cipher("Cipher wrap around", "test_inputs/test_cipher_wrap.txt", 3);
     test_my_scanf_cipher("Cipher with punctuation", "test_inputs/test_cipher_punctuation.txt", 13);  // ROT13!
     test_my_scanf_cipher("Cipher offset 1", "test_inputs/test_cipher_simple.txt", 1);
+    test_my_scanf_cipher("Cipher inverted text", "test_inputs/test_cipher_inverted.txt", 3);
 
     // Print summary
     printf("\n========================================\n");

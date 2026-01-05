@@ -11,6 +11,7 @@ typedef struct {
     int field_width;     // if app. for %31s, this is 31; 0 means no limit
     char length_mod[3];  // "ll", "l", "h", or ""
     int suppress;        // 1 if '*' is present, 0 otherwise
+    int exclaim;         // 1 if '!' is present, 0 otherwise for %z and %q
 } FormatSpecifier;
 
 // Parse format specifier and return number of characters consumed
@@ -23,14 +24,17 @@ static int parse_format_specifier(const char *format, FormatSpecifier *spec) {
     spec->length_mod[0] = '\0';
     spec->specifier = '\0';
     spec->suppress = 0;
-
-    // Because there is a set order/pattern for different elements of the modifiers
-    // i.e.: characters (*) then numbers then letters
-    // they are being parsed in that order
+    spec->exclaim = 0;  // Renamed from invert_case
 
     // Check for assignment suppression '*' first
     if (format[pos] == '*') {
         spec->suppress = 1;
+        pos++;
+    }
+
+    // Check for exclamation '!'
+    if (format[pos] == '!') {
+        spec->exclaim = 1;
         pos++;
     }
 
@@ -45,7 +49,7 @@ static int parse_format_specifier(const char *format, FormatSpecifier *spec) {
         spec->length_mod[0] = 'h';
         spec->length_mod[1] = '\0';
         pos++;
-    } else if (format[pos] == 'L') {  // Add this for long double
+    } else if (format[pos] == 'L') {
         spec->length_mod[0] = 'L';
         spec->length_mod[1] = '\0';
         pos++;
@@ -659,30 +663,44 @@ int read_binary_integer(int* b, int field_width) {
 }
 
 // reads a text and stores the cipher with an int offset
-// eg. %3q "a" -> "d"
-int read_cipher(char* q, int offset, int max_size) {
+// e.g. %3q "a" -> "d"
+int read_cipher(char* q, int offset, int invert_case, int max_size) {
     int c = getchar();
 
     // Read until newline or EOF
     int count = 0;
 
     while (c != EOF && c != '\n' && count < max_size - 1) {
+        char result;
+
         if (c >= 'a' && c <= 'z') {
-            // Lowercase letter
+            // Lowercase letter - cipher it
             int pos = c - 'a';
             pos = (pos + offset) % 26;
-            if (pos < 0) pos += 26;  // Handle negative offsets
-            q[count] = 'a' + pos;
+            if (pos < 0) pos += 26;
+            result = (char)('a' + pos);
+
+            // Invert case if needed
+            if (invert_case) {
+                result = (char)(result - 'a' + 'A');  // Convert to uppercase
+            }
         } else if (c >= 'A' && c <= 'Z') {
-            // Uppercase letter
+            // Uppercase letter - cipher it
             int pos = c - 'A';
             pos = (pos + offset) % 26;
-            if (pos < 0) pos += 26;  // Handle negative offsets
-            q[count] = 'A' + pos;
+            if (pos < 0) pos += 26;
+            result = (char)('A' + pos);
+
+            // Invert case if needed
+            if (invert_case) {
+                result = (char)(result - 'A' + 'a');  // Convert to lowercase
+            }
         } else {
             // Non-letter (space, punctuation, numbers, etc.)
-            q[count] = (char)c;
+            result = (char)c;
         }
+
+        q[count] = result;
         count++;
         c = getchar();
     }
@@ -699,7 +717,7 @@ int read_cipher(char* q, int offset, int max_size) {
 }
 
 // similar to '%s' adds "lol" to the end of every string
-int read_gen_z(char* z, int max_size) {
+int read_gen_z(char* z, int max_size, int exclaim, const char *length_mod) {
     int c = getchar();
 
     // Skip leading whitespace
@@ -707,10 +725,22 @@ int read_gen_z(char* z, int max_size) {
         c = getchar();
     }
 
-    // If we hit newline or EOF immediately, return "lol"
+    // Determine what to append
+    const char *suffix;
+    if (exclaim && length_mod[0] == 'h') {
+        suffix = " haha!";  // %!hz
+    } else if (exclaim) {
+        suffix = " lol!";    // %!z
+    } else {
+        suffix = " lol";     // %z
+    }
+
+    int suffix_len = strlen(suffix);
+
+    // If we hit newline or EOF immediately, return just the suffix (without leading space)
     if (c == '\n' || c == EOF) {
-        if (max_size >= 4) {  // Need space for "lol\0"
-            strcpy(z, "lol");
+        if (max_size >= suffix_len) {
+            strcpy(z, suffix + 1);  // Skip leading space
             return 1;
         }
         return 0;
@@ -720,7 +750,7 @@ int read_gen_z(char* z, int max_size) {
     int count = 0;
     int last_non_space = -1;  // Track position of last non-whitespace char
 
-    while (c != EOF && c != '\n' && count < max_size - 5) {  // Reserve 5 chars for " lol\0"
+    while (c != EOF && c != '\n' && count < max_size - suffix_len - 1) {
         z[count] = (char)c;
         if (!isspace(c)) {
             last_non_space = count;
@@ -738,17 +768,13 @@ int read_gen_z(char* z, int max_size) {
     if (last_non_space >= 0) {
         count = last_non_space + 1;
     } else {
-        // All whitespace - return just "lol"
-        strcpy(z, "lol");
+        // All whitespace - return just suffix (without leading space)
+        strcpy(z, suffix + 1);
         return 1;
     }
 
-    // Append " lol"
-    z[count] = ' ';
-    z[count + 1] = 'l';
-    z[count + 2] = 'o';
-    z[count + 3] = 'l';
-    z[count + 4] = '\0';
+    // Append suffix
+    strcpy(z + count, suffix);
 
     return 1;
 }
@@ -1002,24 +1028,19 @@ int my_scanf(const char *format, ...) {
                     int result;
 
                     if (spec.suppress) {
-                        // Read but don't store
-                        result = read_gen_z(buffer, max_size);
+                        result = read_gen_z(buffer, max_size, spec.exclaim, spec.length_mod);
                     } else {
-                        // Normal case - get pointer from va_arg and store
                         char *ptr = va_arg(args, char*);
-                        result = read_gen_z(ptr, max_size);
+                        result = read_gen_z(ptr, max_size, spec.exclaim, spec.length_mod);
                         if (result == 1) {
                             assigned_count++;
                         }
                     }
 
-                    // Handle EOF/failure
-                    if (result == -1) {
+                    // Handle EOF - will handle whitespaces so don't worry
+                    if (result == 0) {
                         va_end(args);
                         return (assigned_count == 0) ? -1 : assigned_count;
-                    } else if (result == 0) {
-                        va_end(args);
-                        return assigned_count;
                     }
                     break;
                 }
@@ -1027,32 +1048,26 @@ int my_scanf(const char *format, ...) {
                 case 'q': {
                     char buffer[256];  // Temp buffer for suppressed reads
                     int max_size = 256;
-                    int offset = spec.field_width;  // Use field_width as cipher offset
+                    int offset = spec.field_width;
                     int result;
 
                     if (spec.suppress) {
-                        // Read but don't store
-                        result = read_cipher(buffer, offset, max_size);
+                        result = read_cipher(buffer, offset, spec.exclaim, max_size);
                     } else {
-                        // Normal case - get pointer from va_arg and store
                         char *ptr = va_arg(args, char*);
-                        result = read_cipher(ptr, offset, max_size);
+                        result = read_cipher(ptr, offset, spec.exclaim, max_size);
                         if (result == 1) {
                             assigned_count++;
                         }
                     }
 
-                    // Handle EOF/failure
+                    // Handle EOF
                     if (result == -1) {
                         va_end(args);
                         return (assigned_count == 0) ? -1 : assigned_count;
-                    } else if (result == 0) {
-                        va_end(args);
-                        return assigned_count;
                     }
                     break;
                 }
-
 
                 default:
                     // Unknown specifier - skip it
