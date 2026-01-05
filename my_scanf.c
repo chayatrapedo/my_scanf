@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
+#include <stdlib.h>
 
 
 // format specifier structure
@@ -281,205 +282,271 @@ int read_short(short* d, int field_width) {
     return 0;
 }
 
-int read_float(float* f, int field_width) {
-    // Skip leading whitespace
-    int c = getchar();
-    while (c != EOF && isspace(c)) {
-        c = getchar();
-    }
+int read_float(float *value, int field_width) {
+    int c;
+    char buffer[256] = {0};
+    int pos = 0;
+    int max_chars = (field_width > 0) ? field_width : 255;
 
-    // Check for EOF
+    // Skip leading whitespace
+    do {
+        c = getchar();
+    } while (isspace(c) && c != '\n');
+
     if (c == EOF) {
         return -1;
     }
 
-    int chars_read = 0;
-    int max_chars = (field_width > 0) ? field_width : INT_MAX;
-
-    // Check for sign
-    int sign = 1;
-    if ((c == '-' || c == '+') && chars_read < max_chars) {
-        if (c == '-') {
-            sign = -1;
-        }
-        chars_read++;
+    // Read sign
+    if (c == '+' || c == '-') {
+        buffer[pos++] = c;
         c = getchar();
     }
 
-    // Read integer part
-    float value = 0.0f;
-    int read_any_digits = 0;
+    // Check if we have any digits
+    int found_digit = 0;
 
-    while (c != EOF && isdigit(c) && chars_read < max_chars) {
-        int digit = c - '0';
-        value = value * 10.0f + (float)digit;
-        read_any_digits = 1;
-        chars_read++;
+    // Read digits before decimal point
+    while (isdigit(c) && pos < max_chars) {
+        buffer[pos++] = c;
+        found_digit = 1;
         c = getchar();
     }
 
-    // Check for decimal point
-    if (c == '.' && chars_read < max_chars) {
-        chars_read++;
+    // Read decimal point and digits after
+    if (c == '.' && pos < max_chars) {
+        buffer[pos++] = c;
         c = getchar();
-        float divisor = 10.0f;
-
-        // Read fractional part
-        while (c != EOF && isdigit(c) && chars_read < max_chars) {
-            int digit = c - '0';
-            value += (float) digit / divisor;
-            divisor *= 10.0f;
-            read_any_digits = 1;
-            chars_read++;
+        while (isdigit(c) && pos < max_chars) {
+            buffer[pos++] = c;
+            found_digit = 1;
             c = getchar();
         }
     }
 
-    // Put back the last character
+    // NEW: Handle scientific notation (e or E)
+    if ((c == 'e' || c == 'E') && found_digit && pos < max_chars) {
+        buffer[pos++] = c;  // Add the 'e' or 'E'
+        c = getchar();
+
+        // Optional sign after e/E
+        if ((c == '+' || c == '-') && pos < max_chars) {
+            buffer[pos++] = c;
+            c = getchar();
+        }
+
+        // Must have at least one digit after e/E
+        int exp_digit_count = 0;
+        while (isdigit(c) && pos < max_chars) {
+            buffer[pos++] = c;
+            exp_digit_count++;
+            c = getchar();
+        }
+
+        // If no digits after e/E, the 'e' was not part of the number
+        // Put back the last character and remove the 'e' from buffer
+        if (exp_digit_count == 0) {
+            if (c != EOF) ungetc(c, stdin);
+            // Remove the 'e' and any sign that followed it
+            pos = strlen(buffer);
+            while (pos > 0 && (buffer[pos-1] == 'e' || buffer[pos-1] == 'E' ||
+                              buffer[pos-1] == '+' || buffer[pos-1] == '-')) {
+                pos--;
+            }
+        }
+    }
+
+    // Put back the character we didn't use
     if (c != EOF) {
         ungetc(c, stdin);
     }
 
-    if (read_any_digits) {
-        *f = value * (float)sign;
-        return 1;
+    // Null terminate and convert
+    buffer[pos] = '\0';
+
+    if (!found_digit) {
+        return 0;  // No valid float
     }
 
-    return 0;
+    *value = strtof(buffer, NULL);
+    return 1;
 }
 
-int read_double(double* f, int field_width) {
-    // Skip leading whitespace
-    int c = getchar();
-    while (c != EOF && isspace(c)) {
-        c = getchar();
-    }
 
-    // Check for EOF
+int read_double(double *value, int field_width) {
+    int c;
+    char buffer[256] = {0};
+    int pos = 0;
+    int max_chars = (field_width > 0) ? field_width : 255;
+
+    // Skip leading whitespace
+    do {
+        c = getchar();
+    } while (isspace(c) && c != '\n');
+
     if (c == EOF) {
         return -1;
     }
 
-    int chars_read = 0;
-    int max_chars = (field_width > 0) ? field_width : INT_MAX;
-
-    // Check for sign
-    int sign = 1;
-    if ((c == '-' || c == '+') && chars_read < max_chars) {
-        if (c == '-') {
-            sign = -1;
-        }
-        chars_read++;
+    // Read sign
+    if (c == '+' || c == '-') {
+        buffer[pos++] = c;
         c = getchar();
     }
 
-    // Read integer part
-    double value = 0.0;
-    int read_any_digits = 0;
+    // Check if we have any digits
+    int found_digit = 0;
 
-    while (c != EOF && isdigit(c) && chars_read < max_chars) {
-        int digit = c - '0';
-        value = value * 10.0 + (double)digit;
-        read_any_digits = 1;
-        chars_read++;
+    // Read digits before decimal point
+    while (isdigit(c) && pos < max_chars) {
+        buffer[pos++] = c;
+        found_digit = 1;
         c = getchar();
     }
 
-    // Check for decimal point
-    if (c == '.' && chars_read < max_chars) {
-        chars_read++;
+    // Read decimal point and digits after
+    if (c == '.' && pos < max_chars) {
+        buffer[pos++] = c;
         c = getchar();
-        double divisor = 10.0;
-
-        // Read fractional part
-        while (c != EOF && isdigit(c) && chars_read < max_chars) {
-            int digit = c - '0';
-            value += digit / divisor;
-            divisor *= 10.0;
-            read_any_digits = 1;
-            chars_read++;
+        while (isdigit(c) && pos < max_chars) {
+            buffer[pos++] = c;
+            found_digit = 1;
             c = getchar();
         }
     }
 
-    // Put back the last character
+    // Handle scientific notation (e or E)
+    if ((c == 'e' || c == 'E') && found_digit && pos < max_chars) {
+        buffer[pos++] = c;  // Add the 'e' or 'E'
+        c = getchar();
+
+        // Optional sign after e/E
+        if ((c == '+' || c == '-') && pos < max_chars) {
+            buffer[pos++] = c;
+            c = getchar();
+        }
+
+        // Must have at least one digit after e/E
+        int exp_digit_count = 0;
+        while (isdigit(c) && pos < max_chars) {
+            buffer[pos++] = c;
+            exp_digit_count++;
+            c = getchar();
+        }
+
+        // If no digits after e/E, the 'e' was not part of the number
+        if (exp_digit_count == 0) {
+            if (c != EOF) ungetc(c, stdin);
+            pos = strlen(buffer);
+            while (pos > 0 && (buffer[pos-1] == 'e' || buffer[pos-1] == 'E' ||
+                              buffer[pos-1] == '+' || buffer[pos-1] == '-')) {
+                pos--;
+            }
+        }
+    }
+
+    // Put back the character we didn't use
     if (c != EOF) {
         ungetc(c, stdin);
     }
 
-    if (read_any_digits) {
-        *f = value * sign;
-        return 1;
+    // Null terminate and convert
+    buffer[pos] = '\0';
+
+    if (!found_digit) {
+        return 0;  // No valid float
     }
 
-    return 0;
+    *value = strtod(buffer, NULL);
+    return 1;
 }
 
-int read_long_double(long double* f, int field_width) {
-    // Skip leading whitespace
-    int c = getchar();
-    while (c != EOF && isspace(c)) {
-        c = getchar();
-    }
+int read_long_double(long double *value, int field_width) {
+    int c;
+    char buffer[256] = {0};
+    int pos = 0;
+    int max_chars = (field_width > 0) ? field_width : 255;
 
-    // Check for EOF
+    // Skip leading whitespace
+    do {
+        c = getchar();
+    } while (isspace(c) && c != '\n');
+
     if (c == EOF) {
         return -1;
     }
 
-    int chars_read = 0;
-    int max_chars = (field_width > 0) ? field_width : INT_MAX;
-
-    // Check for sign
-    int sign = 1;
-    if ((c == '-' || c == '+') && chars_read < max_chars) {
-        if (c == '-') {
-            sign = -1;
-        }
-        chars_read++;
+    // Read sign
+    if (c == '+' || c == '-') {
+        buffer[pos++] = c;
         c = getchar();
     }
 
-    // Read integer part
-    long double value = 0.0L;
-    int read_any_digits = 0;
+    // Check if we have any digits
+    int found_digit = 0;
 
-    while (c != EOF && isdigit(c) && chars_read < max_chars) {
-        int digit = c - '0';
-        value = value * 10.0L + (long double)digit;
-        read_any_digits = 1;
-        chars_read++;
+    // Read digits before decimal point
+    while (isdigit(c) && pos < max_chars) {
+        buffer[pos++] = c;
+        found_digit = 1;
         c = getchar();
     }
 
-    // Check for decimal point
-    if (c == '.' && chars_read < max_chars) {
-        chars_read++;
+    // Read decimal point and digits after
+    if (c == '.' && pos < max_chars) {
+        buffer[pos++] = c;
         c = getchar();
-        long double divisor = 10.0L;
-
-        // Read fractional part
-        while (c != EOF && isdigit(c) && chars_read < max_chars) {
-            int digit = c - '0';
-            value += (long double)digit / divisor;
-            divisor *= 10.0L;
-            read_any_digits = 1;
-            chars_read++;
+        while (isdigit(c) && pos < max_chars) {
+            buffer[pos++] = c;
+            found_digit = 1;
             c = getchar();
         }
     }
 
-    // Put back the last character
+    // Handle scientific notation (e or E)
+    if ((c == 'e' || c == 'E') && found_digit && pos < max_chars) {
+        buffer[pos++] = c;  // Add the 'e' or 'E'
+        c = getchar();
+
+        // Optional sign after e/E
+        if ((c == '+' || c == '-') && pos < max_chars) {
+            buffer[pos++] = c;
+            c = getchar();
+        }
+
+        // Must have at least one digit after e/E
+        int exp_digit_count = 0;
+        while (isdigit(c) && pos < max_chars) {
+            buffer[pos++] = c;
+            exp_digit_count++;
+            c = getchar();
+        }
+
+        // If no digits after e/E, the 'e' was not part of the number
+        if (exp_digit_count == 0) {
+            if (c != EOF) ungetc(c, stdin);
+            pos = strlen(buffer);
+            while (pos > 0 && (buffer[pos-1] == 'e' || buffer[pos-1] == 'E' ||
+                              buffer[pos-1] == '+' || buffer[pos-1] == '-')) {
+                pos--;
+            }
+        }
+    }
+
+    // Put back the character we didn't use
     if (c != EOF) {
         ungetc(c, stdin);
     }
 
-    if (read_any_digits) {
-        *f = value * sign;
-        return 1;
+    // Null terminate and convert
+    buffer[pos] = '\0';
+
+    if (!found_digit) {
+        return 0;  // No valid float
     }
 
-    return 0;
+    *value = strtold(buffer, NULL);
+    return 1;
 }
 
 int read_hex_integer(int* x, int field_width) {
