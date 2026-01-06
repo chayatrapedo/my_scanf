@@ -6,7 +6,9 @@
 #include <stdlib.h>
 
 
-// format specifier structure
+// FORMAT SPECIFIER STRUCTURE
+// Represents a parsed format specifier like "%*5ld" or "%!3q"
+// Components are parsed in order: %[*][!][width][length]specifier
 typedef struct {
     char specifier;      // 'd', 's', 'c', 'f', 'x', 'z', 'q', 'b'
     int field_width;     // if app. for %31s, this is 31; 0 means no limit
@@ -15,8 +17,14 @@ typedef struct {
     int exclaim;         // 1 if '!' is present, 0 otherwise for %z and %q
 } FormatSpecifier;
 
-// Parse format specifier and return number of characters consumed
-// format should point to the character AFTER the '%'
+// FORMAT SPECIFIER PARSER
+// Parses a format specifier starting immediately after '%'
+// Format: %[*][!][width][length]specifier
+// Examples:
+//   "%5d"   → width=5, specifier='d'
+//   "%*ld"  → suppress=1, length_mod="l", specifier='d'
+//   "%!3q"  → exclaim=1, width=3, specifier='q'
+// Returns: Number of characters consumed from the format string
 static int parse_format_specifier(const char *format, FormatSpecifier *spec) {
     int pos = 0;
 
@@ -73,7 +81,8 @@ static int parse_format_specifier(const char *format, FormatSpecifier *spec) {
     return pos;
 }
 
-// helper functions
+// HELPER FUNCTIONS to my_scanf()
+// Whitespace Handling
 static void skip_whitespace() {
     int c;
     while ((c = getchar()) != EOF && isspace(c)) {
@@ -84,7 +93,15 @@ static void skip_whitespace() {
     }
 }
 
-// helper functions - modifiers
+// STANDARD TYPE READERS
+// Each read_* function:
+//   1. Skips leading whitespace
+//   2. Checks for optional sign (+/-)
+//   3. Reads digits/characters up to field_width limit
+//   4. Puts back the first non-matching character with ungetc()
+//   5. Returns: 1 (success), 0 (no valid input), -1 (EOF before any input)
+
+// Read signed integer with optional field width limit
 int read_integer(int* d, int field_width) {
     // Skip leading whitespace
     int c = getchar();
@@ -134,7 +151,7 @@ int read_integer(int* d, int field_width) {
     return 0;
 }
 
-// variations of the read integer function
+// Variations of the read_integer function for different sizes of integers
 int read_long(long* d, int field_width) {
     // Skip leading whitespace
     int c = getchar();
@@ -282,6 +299,7 @@ int read_short(short* d, int field_width) {
     return 0;
 }
 
+// Read float with decimal point and optional scientific notation (e/E)
 int read_float(float *value, int field_width) {
     int c;
     char buffer[256] = {0};
@@ -299,7 +317,7 @@ int read_float(float *value, int field_width) {
 
     // Read sign
     if (c == '+' || c == '-') {
-        buffer[pos++] = c;
+        buffer[pos++] = (char)c;
         c = getchar();
     }
 
@@ -308,37 +326,37 @@ int read_float(float *value, int field_width) {
 
     // Read digits before decimal point
     while (isdigit(c) && pos < max_chars) {
-        buffer[pos++] = c;
+        buffer[pos++] = (char)c;
         found_digit = 1;
         c = getchar();
     }
 
     // Read decimal point and digits after
     if (c == '.' && pos < max_chars) {
-        buffer[pos++] = c;
+        buffer[pos++] = (char)c;
         c = getchar();
         while (isdigit(c) && pos < max_chars) {
-            buffer[pos++] = c;
+            buffer[pos++] = (char)c;
             found_digit = 1;
             c = getchar();
         }
     }
 
-    // NEW: Handle scientific notation (e or E)
+    // Handle scientific notation (e or E)
     if ((c == 'e' || c == 'E') && found_digit && pos < max_chars) {
-        buffer[pos++] = c;  // Add the 'e' or 'E'
+        buffer[pos++] = (char)c;  // Add the 'e' or 'E'
         c = getchar();
 
         // Optional sign after e/E
         if ((c == '+' || c == '-') && pos < max_chars) {
-            buffer[pos++] = c;
+            buffer[pos++] = (char)c;
             c = getchar();
         }
 
         // Must have at least one digit after e/E
         int exp_digit_count = 0;
         while (isdigit(c) && pos < max_chars) {
-            buffer[pos++] = c;
+            buffer[pos++] = (char)c;
             exp_digit_count++;
             c = getchar();
         }
@@ -348,7 +366,7 @@ int read_float(float *value, int field_width) {
         if (exp_digit_count == 0) {
             if (c != EOF) ungetc(c, stdin);
             // Remove the 'e' and any sign that followed it
-            pos = strlen(buffer);
+            pos = (int)strlen(buffer);
             while (pos > 0 && (buffer[pos-1] == 'e' || buffer[pos-1] == 'E' ||
                               buffer[pos-1] == '+' || buffer[pos-1] == '-')) {
                 pos--;
@@ -372,7 +390,7 @@ int read_float(float *value, int field_width) {
     return 1;
 }
 
-
+// Variations of the read_float function for different sizes of floats
 int read_double(double *value, int field_width) {
     int c;
     char buffer[256] = {0};
@@ -390,7 +408,7 @@ int read_double(double *value, int field_width) {
 
     // Read sign
     if (c == '+' || c == '-') {
-        buffer[pos++] = c;
+        buffer[pos++] = (char)c;
         c = getchar();
     }
 
@@ -399,17 +417,17 @@ int read_double(double *value, int field_width) {
 
     // Read digits before decimal point
     while (isdigit(c) && pos < max_chars) {
-        buffer[pos++] = c;
+        buffer[pos++] = (char)c;
         found_digit = 1;
         c = getchar();
     }
 
     // Read decimal point and digits after
     if (c == '.' && pos < max_chars) {
-        buffer[pos++] = c;
+        buffer[pos++] = (char)c;
         c = getchar();
         while (isdigit(c) && pos < max_chars) {
-            buffer[pos++] = c;
+            buffer[pos++] = (char)c;
             found_digit = 1;
             c = getchar();
         }
@@ -417,19 +435,19 @@ int read_double(double *value, int field_width) {
 
     // Handle scientific notation (e or E)
     if ((c == 'e' || c == 'E') && found_digit && pos < max_chars) {
-        buffer[pos++] = c;  // Add the 'e' or 'E'
+        buffer[pos++] = (char)c;  // Add the 'e' or 'E'
         c = getchar();
 
         // Optional sign after e/E
         if ((c == '+' || c == '-') && pos < max_chars) {
-            buffer[pos++] = c;
+            buffer[pos++] = (char)c;
             c = getchar();
         }
 
         // Must have at least one digit after e/E
         int exp_digit_count = 0;
         while (isdigit(c) && pos < max_chars) {
-            buffer[pos++] = c;
+            buffer[pos++] = (char)c;
             exp_digit_count++;
             c = getchar();
         }
@@ -437,7 +455,7 @@ int read_double(double *value, int field_width) {
         // If no digits after e/E, the 'e' was not part of the number
         if (exp_digit_count == 0) {
             if (c != EOF) ungetc(c, stdin);
-            pos = strlen(buffer);
+            pos = (int)strlen(buffer);
             while (pos > 0 && (buffer[pos-1] == 'e' || buffer[pos-1] == 'E' ||
                               buffer[pos-1] == '+' || buffer[pos-1] == '-')) {
                 pos--;
@@ -478,7 +496,7 @@ int read_long_double(long double *value, int field_width) {
 
     // Read sign
     if (c == '+' || c == '-') {
-        buffer[pos++] = c;
+        buffer[pos++] = (char)c;
         c = getchar();
     }
 
@@ -487,17 +505,17 @@ int read_long_double(long double *value, int field_width) {
 
     // Read digits before decimal point
     while (isdigit(c) && pos < max_chars) {
-        buffer[pos++] = c;
+        buffer[pos++] = (char)c;
         found_digit = 1;
         c = getchar();
     }
 
     // Read decimal point and digits after
     if (c == '.' && pos < max_chars) {
-        buffer[pos++] = c;
+        buffer[pos++] = (char)c;
         c = getchar();
         while (isdigit(c) && pos < max_chars) {
-            buffer[pos++] = c;
+            buffer[pos++] = (char)c;
             found_digit = 1;
             c = getchar();
         }
@@ -505,19 +523,19 @@ int read_long_double(long double *value, int field_width) {
 
     // Handle scientific notation (e or E)
     if ((c == 'e' || c == 'E') && found_digit && pos < max_chars) {
-        buffer[pos++] = c;  // Add the 'e' or 'E'
+        buffer[pos++] = (char)c;  // Add the 'e' or 'E'
         c = getchar();
 
         // Optional sign after e/E
         if ((c == '+' || c == '-') && pos < max_chars) {
-            buffer[pos++] = c;
+            buffer[pos++] = (char)c;
             c = getchar();
         }
 
         // Must have at least one digit after e/E
         int exp_digit_count = 0;
         while (isdigit(c) && pos < max_chars) {
-            buffer[pos++] = c;
+            buffer[pos++] = (char)c;
             exp_digit_count++;
             c = getchar();
         }
@@ -525,7 +543,7 @@ int read_long_double(long double *value, int field_width) {
         // If no digits after e/E, the 'e' was not part of the number
         if (exp_digit_count == 0) {
             if (c != EOF) ungetc(c, stdin);
-            pos = strlen(buffer);
+            pos = (int)strlen(buffer);
             while (pos > 0 && (buffer[pos-1] == 'e' || buffer[pos-1] == 'E' ||
                               buffer[pos-1] == '+' || buffer[pos-1] == '-')) {
                 pos--;
@@ -549,6 +567,7 @@ int read_long_double(long double *value, int field_width) {
     return 1;
 }
 
+// Read hexadecimal integer (0-9, a-f, A-F) with optional 0x prefix
 int read_hex_integer(int* x, int field_width) {
     // Skip leading whitespace
     int c = getchar();
@@ -662,8 +681,10 @@ int read_string(char* s, int max_chars) {
     return (count > 0) ? 1 : 0;
 }
 
-// 3 custom modifiers
-// reads a  binary integer
+// CUSTOM TYPE READERS
+// These implement non-standard format specifiers as extensions to scanf
+
+// %b - Binary integer reader (accepts 0s and 1s with optional 0b prefix)
 int read_binary_integer(int* b, int field_width) {
     // Skip leading whitespace
     int c = getchar();
@@ -729,8 +750,11 @@ int read_binary_integer(int* b, int field_width) {
     return 0;
 }
 
-// reads a text and stores the cipher with an int offset
-// e.g. %3q "a" -> "d"
+// %q - Caesar cipher reader with rotation offset
+// Reads text until newline, applies Caesar cipher with given offset
+// Format: %Nq where N is rotation amount (e.g., %3q rotates by 3)
+// %!Nq includes case inversion (uppercase ↔ lowercase after rotation)
+// Non-letters (spaces, punctuation, numbers) pass through unchanged
 int read_cipher(char* q, int offset, int invert_case, int max_size) {
     int c = getchar();
 
@@ -783,7 +807,12 @@ int read_cipher(char* q, int offset, int invert_case, int max_size) {
     return (count > 0) ? 1 : -1;
 }
 
-// similar to '%s' adds "lol" to the end of every string
+// %z - "Gen Z" text reader that appends slang suffix
+// Reads text until newline, trims trailing whitespace, adds suffix
+// Variants:
+//   %z   → appends " lol"
+//   %!z  → appends " lol!"
+//   %!hz → appends " haha!"
 int read_gen_z(char* z, int max_size, int exclaim, const char *length_mod) {
     int c = getchar();
 
@@ -802,7 +831,7 @@ int read_gen_z(char* z, int max_size, int exclaim, const char *length_mod) {
         suffix = " lol";     // %z
     }
 
-    int suffix_len = strlen(suffix);
+    int suffix_len = (int)strlen(suffix);
 
     // If we hit newline or EOF immediately, return just the suffix (without leading space)
     if (c == '\n' || c == EOF) {
@@ -846,17 +875,30 @@ int read_gen_z(char* z, int max_size, int exclaim, const char *length_mod) {
     return 1;
 }
 
-// my scanf() function
+// MAIN SCANF IMPLEMENTATION
+// Custom implementation of scanf() with additional format specifiers
+// Standard specifiers: %d, %ld, %lld, %hd, %f, %lf, %Lf, %x, %s, %c
+// Custom specifiers:   %b (binary), %z (gen-z text), %q (cipher)
+// Modifiers:           * (suppress), ! (custom modifier), field width
+// Format string processing:
+//   - '%%' → matches literal '%' in input
+//   - Whitespace in format → skips any amount of whitespace in input
+//   - Literal characters → must match exactly in input
+//   - Format specifiers → parsed and dispatched to appropriate reader
+//
+// Return value: Number of successfully assigned items (not suppressed)
+//               Returns EOF (-1) if EOF encountered before any assignment
 int my_scanf(const char *format, ...) {
     va_list args;
     va_start(args, format);
     int assigned_count = 0;
     int i = 0;
 
-
+    // Main parsing loop - process format string character by character
     while (format[i] != '\0') {
+        // Format specifier found - parse and process it
         if (format[i] == '%') {
-            i++;  // Move past '%'
+            i++;
             if (format[i] == '\0') {
                 break;
             }
@@ -1183,13 +1225,3 @@ int my_scanf(const char *format, ...) {
     va_end(args);
     return assigned_count;
 }
-
-
-/*
-int main() {
-    // testing bad pointer assignment to scanf()
-    char res[20];
-    my_scanf("%2q", &res);
-    printf("%s",res);
-}
-*/
