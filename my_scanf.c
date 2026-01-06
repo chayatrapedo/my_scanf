@@ -302,9 +302,9 @@ int read_short(short* d, int field_width) {
 // Read float with decimal point and optional scientific notation (e/E)
 int read_float(float *value, int field_width) {
     int c;
-    char buffer[256] = {0};
+    char buffer[512] = {0};
     int pos = 0;
-    int max_chars = (field_width > 0) ? field_width : 255;
+    int max_chars = (field_width > 0) ? field_width : 511;
 
     // Skip leading whitespace
     do {
@@ -393,9 +393,9 @@ int read_float(float *value, int field_width) {
 // Variations of the read_float function for different sizes of floats
 int read_double(double *value, int field_width) {
     int c;
-    char buffer[256] = {0};
+    char buffer[512] = {0};
     int pos = 0;
-    int max_chars = (field_width > 0) ? field_width : 255;
+    int max_chars = (field_width > 0) ? field_width : 511;
 
     // Skip leading whitespace
     do {
@@ -481,9 +481,9 @@ int read_double(double *value, int field_width) {
 
 int read_long_double(long double *value, int field_width) {
     int c;
-    char buffer[256] = {0};
+    char buffer[512] = {0};
     int pos = 0;
-    int max_chars = (field_width > 0) ? field_width : 255;
+    int max_chars = (field_width > 0) ? field_width : 511;
 
     // Skip leading whitespace
     do {

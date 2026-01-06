@@ -278,17 +278,17 @@ int test_double(const char *name, const char *file, const char *fmt, ExpectedBeh
     stdin = freopen(file, "r", stdin);
     if (!stdin) { printf("FAIL: Can't open %s\n", file); tests_failed++; return 0; }
 
-    double scanf_val = -999.0, my_scanf_val = -999.0;
+    long double scanf_val = -999.0, my_scanf_val = -999.0;
     int scanf_ret = scanf(fmt, &scanf_val);
     freopen("/dev/tty", "r", stdin);
 
-    printf("\tscanf()    returned: %d, value: %.15lf\n", scanf_ret, scanf_val);
+    printf("\tscanf()    returned: %d, value: %.15Lf\n", scanf_ret, scanf_val);
 
     stdin = freopen(file, "r", stdin);
     int my_scanf_ret = my_scanf(fmt, &my_scanf_val);
     freopen("/dev/tty", "r", stdin);
 
-    printf("\tmy_scanf() returned: %d, value: %.15lf\n", my_scanf_ret, my_scanf_val);
+    printf("\tmy_scanf() returned: %d, value: %.15Lf\n", my_scanf_ret, my_scanf_val);
 
     int passed = check_double_match(scanf_ret, my_scanf_ret, scanf_val, my_scanf_val, expected);
     printf("***\n");
@@ -985,7 +985,7 @@ int main() {
     test_float("Trailing decimal (5.)", "test_inputs/test_float_trailing_decimal.txt", "%f", EXPECT_SUCCESS);
 
     printf("\n--- DOUBLE PRECISION ---\n");
-    test_double("Double precision", "test_inputs/test_double.txt", "%lf", EXPECT_SUCCESS);
+    test_double("Double precision", "test_inputs/test_double.txt", "%Lf", EXPECT_SUCCESS);
     test_double("Long double", "test_inputs/test_long_double.txt", "%Lf", EXPECT_SUCCESS);
 
     printf("\n--- HEXADECIMAL (%%x) ---\n");
