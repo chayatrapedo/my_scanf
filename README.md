@@ -91,7 +91,6 @@ make
 Test custom format strings interactively:
 ```bash
 make demo
-./demo_program
 ```
 or 
 ```bash
